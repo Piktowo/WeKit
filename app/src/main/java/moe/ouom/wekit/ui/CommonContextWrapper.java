@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.lang.reflect.Constructor;
+import java.util.HashMap;
 
 import moe.ouom.wekit.util.common.ModuleRes;
 import moe.ouom.wekit.util.log.Logger;
@@ -24,47 +25,68 @@ import moe.ouom.wekit.util.log.Logger;
  * 2. ClassLoader 统一：重写 getClassLoader() 返回模块原本的加载器，而非 createPackageContext 生成的副本
  * 3. View 创建拦截：注入自定义 LayoutInflater Factory，强制 XML 中的控件由模块 ClassLoader 加载，
  * 解决宿主与模块之间的 "ClassCastException" 类隔离冲突问题。
+ * <p>
+ * UPDATE LOG:
+ *      2025.1.19 - 移除了 Theme.setTo(baseTheme)，防止宿主资源 ID 污染模块 Theme
+ *                - 代理 getAssets() 以确保资源加载链路完整
  */
 public class CommonContextWrapper extends ContextWrapper {
 
     private final Resources.Theme mTheme;
-    private final int mThemeResource;
     private LayoutInflater mInflater;
+    private final Resources mResources;
+    private final Context mModuleContext;
 
     public CommonContextWrapper(Context base, int themeResId) {
         super(base);
-        this.mThemeResource = themeResId;
 
-        // 资源依然要用 ModuleRes 的，因为那是专门用来查资源的 Context
-        if (ModuleRes.getContext() != null) {
-            this.mTheme = ModuleRes.getContext().getResources().newTheme();
-            this.mTheme.setTo(ModuleRes.getContext().getTheme());
-        } else {
-            this.mTheme = base.getResources().newTheme();
+        mModuleContext = ModuleRes.getContext();
+
+        if (mModuleContext == null) {
+            throw new IllegalStateException("CommonContextWrapper: ModuleRes is NOT initialized!");
         }
-        this.mTheme.applyStyle(mThemeResource, true);
+
+        // 锁定资源：只用模块的资源
+        this.mResources = mModuleContext.getResources();
+
+        // 创建独立 Theme
+        this.mTheme = this.mResources.newTheme();
+
+        // 应用模块 Theme
+        if (themeResId != 0) {
+            this.mTheme.applyStyle(themeResId, true);
+        } else {
+            // 尝试自动获取默认 Theme
+            int defaultTheme = getResourceIdSafe("Theme.WeKit", "style");
+            if (defaultTheme != 0) {
+                this.mTheme.applyStyle(defaultTheme, true);
+            } else {
+                Logger.w("CommonContextWrapper: Theme.WeKit not found!");
+            }
+        }
     }
 
-    /**
-     * 返回当前类的 ClassLoader (Xposed Loader)
-     * 这样 XML 解析出来的类，和代码里引用的类，才是同一个 Loader 加载的
-     */
+    private int getResourceIdSafe(String name, String type) {
+        try {
+            return ModuleRes.getId(name, type);
+        } catch (Throwable e) {
+            return 0;
+        }
+    }
+
     @Override
     public ClassLoader getClassLoader() {
-        return getClass().getClassLoader();
+        return getClass().getClassLoader(); // 使用模块 ClassLoader
     }
 
-    // ---------------------------------------------------------
-    // 资源查找代理给 ModuleRes
-    // ---------------------------------------------------------
     @Override
     public Resources getResources() {
-        return ModuleRes.getContext().getResources();
+        return mResources;
     }
 
     @Override
     public AssetManager getAssets() {
-        return ModuleRes.getContext().getAssets();
+        return mResources.getAssets();
     }
 
     @Override
@@ -77,22 +99,42 @@ public class CommonContextWrapper extends ContextWrapper {
         mTheme.applyStyle(resid, true);
     }
 
-    // ---------------------------------------------------------
-    // Factory 拦截逻辑
-    // ---------------------------------------------------------
+    // =================================================================================
+    // 修改 getSystemService
+    // =================================================================================
     @Override
     public Object getSystemService(String name) {
         if (LAYOUT_INFLATER_SERVICE.equals(name)) {
             if (mInflater == null) {
-                mInflater = new ModuleLayoutInflater(LayoutInflater.from(getBaseContext()), this);
+                // mInflater = new ModuleLayoutInflater(LayoutInflater.from(getBaseContext()), this);
+                // 2026.1.19: 不能使用上面的写法，它使用宿主 Context 创建解析器，导致无法识别模块 ID
+
+                // 必须使用模块 Context 创建原始 Inflater
+                LayoutInflater moduleInflater = LayoutInflater.from(mModuleContext);
+
+                // 然后 cloneInContext 传入 'this' (Wrapper)，将 Theme 和 Token 桥接回来
+                // 再包裹我们的 ModuleLayoutInflater 以处理 ClassLoader 问题
+                mInflater = new ModuleLayoutInflater(moduleInflater, this);
             }
             return mInflater;
         }
         return super.getSystemService(name);
     }
 
+    public static Context createAppCompatContext(@NonNull Context base) {
+        if (ModuleRes.getContext() == null) {
+            return base;
+        }
+        int themeId = ModuleRes.getId("Theme.WeKit", "style");
+        return new CommonContextWrapper(base, themeId);
+    }
+
+    // =================================================================================
+    // Custom Inflater
+    // =================================================================================
+
     private static class ModuleLayoutInflater extends LayoutInflater {
-        private static final String[] sClassPrefixList = {
+        private static final String[] sAndroidPrefix = {
                 "android.widget.",
                 "android.webkit.",
                 "android.app."
@@ -100,7 +142,7 @@ public class CommonContextWrapper extends ContextWrapper {
 
         protected ModuleLayoutInflater(LayoutInflater original, Context newContext) {
             super(original, newContext);
-            // 这里 newContext.getClassLoader() 会调用上面我们修复过的方法
+            // 设置 Factory2 拦截 View 创建
             setFactory2(new ModuleFactory(newContext.getClassLoader()));
         }
 
@@ -111,13 +153,11 @@ public class CommonContextWrapper extends ContextWrapper {
 
         @Override
         protected View onCreateView(String name, AttributeSet attrs) throws ClassNotFoundException {
-            for (String prefix : sClassPrefixList) {
+            for (String prefix : sAndroidPrefix) {
                 try {
                     View view = createView(name, prefix, attrs);
-                    if (view != null) {
-                        return view;
-                    }
-                } catch (ClassNotFoundException e) { }
+                    if (view != null) return view;
+                } catch (ClassNotFoundException ignored) { }
             }
             return super.onCreateView(name, attrs);
         }
@@ -125,6 +165,7 @@ public class CommonContextWrapper extends ContextWrapper {
 
     private static class ModuleFactory implements LayoutInflater.Factory2 {
         private final ClassLoader mClassLoader;
+        private static final HashMap<String, Constructor<? extends View>> sConstructorCache = new HashMap<>();
 
         public ModuleFactory(ClassLoader cl) {
             this.mClassLoader = cl;
@@ -133,17 +174,10 @@ public class CommonContextWrapper extends ContextWrapper {
         @Nullable
         @Override
         public View onCreateView(@Nullable View parent, @NonNull String name, @NonNull Context context, @NonNull AttributeSet attrs) {
-            if (name.contains(".")) {
-                try {
-                    Class<?> clazz = mClassLoader.loadClass(name);
-                    Constructor<? extends View> constructor = clazz.asSubclass(View.class).getConstructor(Context.class, AttributeSet.class);
-                    constructor.setAccessible(true);
-                    return constructor.newInstance(context, attrs);
-                } catch (Exception e) {
-                    // 加载失败 (如 FrameLayout) 则忽略
-                }
+            if (name.startsWith("android.")) {
+                return null;
             }
-            return null;
+            return createView(name, context, attrs);
         }
 
         @Nullable
@@ -151,13 +185,20 @@ public class CommonContextWrapper extends ContextWrapper {
         public View onCreateView(@NonNull String name, @NonNull Context context, @NonNull AttributeSet attrs) {
             return onCreateView(null, name, context, attrs);
         }
-    }
 
-    public static Context createAppCompatContext(@NonNull Context base) {
-        int themeId = ModuleRes.getId("Theme.WeKit", "style");
-        if (themeId == 0) {
-            themeId = android.R.style.Theme_DeviceDefault_Light_NoActionBar;
+        private View createView(String name, Context context, AttributeSet attrs) {
+            Constructor<? extends View> constructor = sConstructorCache.get(name);
+            try {
+                if (constructor == null) {
+                    Class<?> clazz = mClassLoader.loadClass(name);
+                    constructor = clazz.asSubclass(View.class).getConstructor(Context.class, AttributeSet.class);
+                    constructor.setAccessible(true);
+                    sConstructorCache.put(name, constructor);
+                }
+                return constructor.newInstance(context, attrs);
+            } catch (Exception e) {
+                return null;
+            }
         }
-        return new CommonContextWrapper(base, themeId);
     }
 }

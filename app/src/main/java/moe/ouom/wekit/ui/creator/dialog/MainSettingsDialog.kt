@@ -1,14 +1,9 @@
 package moe.ouom.wekit.ui.creator.dialog
 
 import android.content.Context
-import android.view.View
-import android.widget.PopupMenu
-import android.widget.TextView
 import moe.ouom.wekit.BuildConfig
-import moe.ouom.wekit.config.ConfigManager
 import moe.ouom.wekit.constants.Constants
 import moe.ouom.wekit.util.common.Utils.jumpUrl
-import moe.ouom.wekit.util.log.Logger
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -52,20 +47,17 @@ class MainSettingsDialog(context: Context) : BaseRikkaDialog(context, "WeKit") {
         // ==========================================
         addCategory("兼容")
 
+        // 使用 addSelectPreference 替代手动实现
         val priorityKey = "${Constants.PrekCfgXXX}wekit_hook_priority"
-        // 获取当前 int 值
-        val currentPriorityVal = ConfigManager.getDefaultConfig().getInt(priorityKey, 50)
-        // 转换为文字，如果找不到对应的值，则显示"自定义: [自定义的值]"
-        val displaySummary = priorityMap[currentPriorityVal] ?: "自定义: $currentPriorityVal"
 
-        // 调用 addPreference 并接收返回的 summary TextView
-        addPreference(
+        addSelectPreference(
+            key = priorityKey,
             title = "XC_MethodHook 优先级",
-            summary = displaySummary,
+            summary = "当前设定", // 当配置的值不在 map 中时，会显示 "当前设定: [值]"
+            options = priorityMap,
+            defaultValue = 50,
             iconName = "ic_outline_alt_route_24",
-            onClick = { anchor, summaryView ->
-                showPriorityPopup(anchor, priorityKey, summaryView)
-            }
+            useFullKey = true // 因为 key 已经包含了前缀 PrekCfgXXX，所以必须设为 true
         )
 
         // ==========================================
@@ -93,25 +85,5 @@ class MainSettingsDialog(context: Context) : BaseRikkaDialog(context, "WeKit") {
             iconName = "ic_telegram",
             onClick = { anchor, summaryView -> jumpUrl(context, "https://t.me/ouom_pub") }
         )
-    }
-
-    /**
-     * 使用 PopupMenu 实现依附窗口的菜单
-     */
-    private fun showPriorityPopup(anchor: View, key: String, summaryTextView: TextView?) {
-        val popup = PopupMenu(context, anchor)
-        val menu = popup.menu
-
-        priorityMap.forEach { (value, title) ->
-            val menuItem = menu.add(title)
-            menuItem.setOnMenuItemClickListener {
-                ConfigManager.getDefaultConfig().edit().putInt(key, value).apply()
-                Logger.d("MainSettings: Priority changed to $value ($title)")
-                summaryTextView?.text = title
-                true
-            }
-        }
-
-        popup.show()
     }
 }

@@ -95,7 +95,7 @@ public class ModuleRes {
     }
 
     /**
-     * 关键功能：加载模块内的 XML 布局
+     * 加载模块内的 XML 布局
      *
      * @param layoutName 布局文件名 (不带 .xml)
      * @param root 父布局 (可以为 null)

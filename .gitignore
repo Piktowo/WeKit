@@ -25,3 +25,4 @@ local.properties
 /libs/common/libxposed/service/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/
 /libs/ui/xView/build/
 /libs/ui/xView/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/
+/.spec-workflow/
