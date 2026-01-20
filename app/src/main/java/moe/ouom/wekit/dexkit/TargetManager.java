@@ -24,6 +24,7 @@ import org.luckypray.dexkit.query.matchers.MethodsMatcher;
 import org.luckypray.dexkit.result.ClassData;
 import org.luckypray.dexkit.result.MethodData;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
@@ -34,13 +35,24 @@ import moe.ouom.wekit.util.log.Logger;
 public class TargetManager {
     // 更新此版本可在宿主无版本更新的时候强制要求用户重新搜索被混淆的方法
     // 如果你尝试搜索了新的方法，请更新这里的版本
-    public static final int TargetManager_VERSION = 2;
+    public static final int TargetManager_VERSION = 3;
 
-    // 缓存 Key 定义
+    // 缓存 Key 定义 //
+
+    // 旧版设置 UI HOOK
     public static final String KEY_METHOD_SET_TITLE = "method_pref_setTitle";
     public static final String KEY_METHOD_SET_KEY = "method_pref_setKey";
     public static final String KEY_METHOD_GET_KEY = "method_pref_getKey";
     public static final String KEY_METHOD_ADD_PREF = "method_adapter_addPreference";
+
+
+    // 抢红包
+    public static final String KEY_CLASS_LUCKY_MONEY_RECEIVE = "cls_lucky_money_receive";
+    public static final String KEY_CLASS_LUCKY_MONEY_OPEN = "cls_lucky_money_open";
+    public static final String KEY_METHOD_GET_SEND_MGR = "method_get_send_mgr";
+
+
+    // ------------------------------------------------------------------ //
 
     // 稳定的包名和类名
     private static final String PKG_PREFERENCE = "com.tencent.mm.ui.base.preference";
@@ -85,18 +97,102 @@ public class TargetManager {
             out.append(">>> 开始分析微信代码...\n");
             searchPreferenceMethods(bridge, loader, out);
             searchAdapterMethods(bridge, loader, out);
+
+            out.append("\n\n>>> 分析红包模块...\n");
+            searchLuckyMoneyTargets(bridge, loader, out);
         });
 
         out.append("\n\n[SUCCESS] 搜索与配置更新完成");
         return out.toString();
     }
 
+    private static void searchLuckyMoneyTargets(DexKitBridge bridge, ClassLoader cl, StringBuilder out) {
+        try {
+            // 寻找 NetSceneQueue
+            ClassData senderOwnerClass = bridge.findClass(FindClass.create()
+                .matcher(ClassMatcher.create()
+                    .methods(MethodsMatcher.create()
+                        .add(MethodMatcher.create()
+                            .paramCount(4)
+                            .usingStrings("MicroMsg.Mvvm.NetSceneObserverOwner")
+                        )
+                    )
+                )
+            ).singleOrNull();
+
+            if (senderOwnerClass != null) {
+                String queueClassName = senderOwnerClass.getName();
+                out.append("\n[OK] 找到发送管理类: ").append(queueClassName);
+
+                // 尝试寻找静态获取方法
+                MethodData getMgrMethod = bridge.findMethod(FindMethod.create()
+                    .matcher(MethodMatcher.create()
+                        .modifiers(Modifier.STATIC)
+                        .paramCount(0)
+                        .returnType(queueClassName)
+                    )
+                ).singleOrNull();
+
+                if (getMgrMethod != null) {
+                    cacheMethod(getMgrMethod, cl, KEY_METHOD_GET_SEND_MGR, out);
+                } else {
+                    out.append("\n[FAIL] 未找到静态单例方法");
+                }
+
+            } else {
+                out.append("\n[FAIL] 未找到 NetSceneObserverOwner 特征类");
+            }
+
+            // 拆红包请求类
+            ClassData receiveClass = bridge.findClass(FindClass.create()
+                .searchPackages("com.tencent.mm")
+                .matcher(ClassMatcher.create()
+                    .methods(MethodsMatcher.create()
+                        .add(MethodMatcher.create()
+                            .usingStrings("MicroMsg.NetSceneReceiveLuckyMoney")
+                        )
+                    )
+                )
+            ).singleOrNull();
+
+            if (receiveClass != null) {
+                cPutString(KEY_CLASS_LUCKY_MONEY_RECEIVE, receiveClass.getName());
+                out.append("\n[OK] ReceiveLuckyMoney Class -> ").append(receiveClass.getName());
+            } else {
+                out.append("\n[FAIL] ReceiveLuckyMoney Class 未找到");
+            }
+
+            // 开红包请求类
+            ClassData openClass = bridge.findClass(FindClass.create()
+                    .searchPackages("com.tencent.mm")
+                    .matcher(ClassMatcher.create()
+                        .methods(MethodsMatcher.create()
+                            .add(MethodMatcher.create()
+                                    .usingStrings("MicroMsg.NetSceneOpenLuckyMoney")
+                            )
+                        )
+                    )
+            ).singleOrNull();
+
+            if (openClass != null) {
+                cPutString(KEY_CLASS_LUCKY_MONEY_OPEN, openClass.getName());
+                out.append("\n[OK] OpenLuckyMoney Class -> ").append(openClass.getName());
+            } else {
+                out.append("\n[FAIL] OpenLuckyMoney Class 未找到");
+            }
+
+        } catch (Throwable t) {
+            Logger.e("Search LuckyMoney Error", t);
+            out.append("\n[ERROR] 搜索红包相关类时发生异常: ").append(t.getMessage());
+        }
+    }
+
     private static void searchPreferenceMethods(DexKitBridge bridge, ClassLoader cl, StringBuilder out) {
         try {
             // 定位 Preference 类
             ClassData prefClass = bridge.findClass(FindClass.create()
-                            .matcher(ClassMatcher.create().className(CLS_PREFERENCE)))
-                    .singleOrNull();
+                .matcher(ClassMatcher.create().className(CLS_PREFERENCE)))
+                .singleOrNull();
 
             if (prefClass == null) {
                 out.append("\n[FAIL] 未找到 Preference 类: ").append(CLS_PREFERENCE);
@@ -116,7 +212,6 @@ public class TargetManager {
                 );
 
                 if (!keyCandidates.isEmpty()) {
-                    // 反编译代码用了 singleOrThrow，这里我们稳妥取第0个，效果一样
                     cacheMethod(keyCandidates.get(0), cl, KEY_METHOD_SET_KEY, out);
                 } else {
                     out.append("\n[FAIL] setKey 未找到");
@@ -266,6 +361,48 @@ public class TargetManager {
             Logger.e("requireMethod failed for " + key, t);
             return null;
         }
+    }
+
+    public static String requireClassName(String key) {
+        return cGetString(key, "");
+    }
+
+    // 缓存构造函数
+    private static void cacheConstructor(MethodData md, ClassLoader cl, String key, StringBuilder out) {
+        try {
+            Constructor<?> c = md.getConstructorInstance(cl);
+            // 存储格式：ClassName#ParamCount
+            String sig = c.getDeclaringClass().getName() + "#" + c.getParameterCount();
+            cPutString(key, sig);
+            out.append("\n[OK] 构造函数(" + key + ") -> ").append(sig);
+        } catch (Exception e) {
+            out.append("\n[ERROR] 缓存构造函数失败: ").append(key);
+        }
+    }
+
+
+    public static Constructor<?> requireConstructor(String key) {
+        try {
+            String sig = cGetString(key, null);
+            if (TextUtils.isEmpty(sig)) return null;
+
+            String[] p = sig.split("#");
+            if (p.length < 2) return null;
+
+            String className = p[0];
+            int paramCount = Integer.parseInt(p[1]);
+
+            Class<?> clazz = loadClass(className);
+            for (Constructor<?> c : clazz.getDeclaredConstructors()) {
+                if (c.getParameterCount() == paramCount) {
+                    c.setAccessible(true);
+                    return c;
+                }
+            }
+        } catch (Throwable t) {
+            Logger.e("requireConstructor failed for " + key, t);
+        }
+        return null;
     }
 
     public interface OnTaskCompleteListener {

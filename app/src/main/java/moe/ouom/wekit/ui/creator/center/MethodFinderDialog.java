@@ -18,6 +18,7 @@ import androidx.annotation.NonNull;
 
 import moe.ouom.wekit.dexkit.TargetManager;
 import moe.ouom.wekit.util.common.ModuleRes;
+import moe.ouom.wekit.util.log.Logger;
 
 public class MethodFinderDialog extends Dialog {
     private final Activity activity;
@@ -94,6 +95,7 @@ public class MethodFinderDialog extends Dialog {
 
                 TargetManager.runMethodFinder(ai, cl, activity,
                     result -> {
+                        Logger.i("MethodFinderDialog: onTaskComplete", result);
                         if (tvTip != null) tvTip.setText(result);
                         if (btnClose != null) {
                             btnClose.setText("重启微信");

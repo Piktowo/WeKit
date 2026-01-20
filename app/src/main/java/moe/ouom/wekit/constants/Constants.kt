@@ -14,7 +14,13 @@ class Constants private constructor() {
         const val CLAZZ_MMActivity = "com.tencent.mm.ui.MMActivity"
         const val CLAZZ_I_PREFERENCE_SCREEN = "com.tencent.mm.ui.base.preference.IPreferenceScreen"
         const val CLAZZ_PREFERENCE = "com.tencent.mm.ui.base.preference.Preference"
-        
+
+        // 数据库类
+        const val CLAZZ_SQLITE_DATABASE = "com.tencent.wcdb.database.SQLiteDatabase"
+
+        // 红包消息类型
+        const val TYPE_LUCKY_MONEY_B = 436207665
+        const val TYPE_LUCKY_MONEY_C = 469762097
 
         const val PrekXXX: String = "setting_switch_value_"
         const val PrekCfgXXX: String = "setting_cfg_value_"

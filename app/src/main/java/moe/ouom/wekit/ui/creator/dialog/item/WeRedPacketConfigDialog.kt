@@ -26,7 +26,7 @@ class WeRedPacketConfigDialog(context: Context) : BaseRikkaDialog(context, "自�
         addSwitchPreference(
             key = "red_packet_delay_random",
             title = "随机延时",
-            summary = "模拟人工操作，防止风控"
+            summary = "模拟人工操作（500ms ~ 5000ms)，防止风控"
         )
 
         val customDelayView = addEditTextPreference(

@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import moe.ouom.wekit.constants.Constants;
+
 public abstract class ConfigManager implements SharedPreferences, SharedPreferences.Editor {
 
     private static ConfigManager sDefConfig;
@@ -142,6 +144,19 @@ public abstract class ConfigManager implements SharedPreferences, SharedPreferen
 
     public boolean getBooleanOrFalse(@NonNull String key) {
         return getBooleanOrDefault(key, false);
+    }
+
+    public boolean getBoolPrek(@NonNull String key) {
+        return getBooleanOrDefault(Constants.PrekXXX+key, false);
+    }
+    public String getStringPrek(@NonNull String key, String def) {
+        return getString(Constants.PrekXXX+key, def);
+    }
+    public int getIntPrek(@NonNull String key, int def) {
+        return getInt(Constants.PrekXXX+key, def);
+    }
+    public long getLongPrek(@NonNull String key, long def) {
+        return getLong(Constants.PrekXXX+key, def);
     }
 
     public boolean getBooleanOrDefault(@NonNull String key, boolean def) {
