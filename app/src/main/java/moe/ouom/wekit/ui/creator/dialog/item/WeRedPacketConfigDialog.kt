@@ -38,7 +38,7 @@ class WeRedPacketConfigDialog(context: Context) : BaseRikkaDialog(context, "自�
             inputType = InputType.TYPE_CLASS_NUMBER,
             maxLength = 5,
             summaryFormatter = { value ->
-                if (value.isEmpty()) "延迟时间" else "$value ms"
+                if (value.isEmpty()) "0 ms" else "$value ms"
             }
         )
 

@@ -238,12 +238,14 @@ abstract class BaseRikkaDialog(
         summaryFormatter: ((String) -> String)? = null
     ): View {
         val configKey = if (useFullKey) key else "${Constants.PrekXXX}$key"
-        val currentValue = ConfigManager.getDefaultConfig().getString(configKey, defaultValue) ?: defaultValue
+
+        // 这里获取的值仅用于界面初次显示 Summary
+        val initialValue = ConfigManager.getDefaultConfig().getString(configKey, defaultValue) ?: defaultValue
 
         val displaySummary = if (summaryFormatter != null) {
-            summaryFormatter(currentValue)
+            summaryFormatter(initialValue)
         } else {
-            if (currentValue.isEmpty()) summary else "$summary: $currentValue"
+            if (initialValue.isEmpty()) summary else "$summary: $initialValue"
         }
 
         val view = addPreference(
@@ -251,10 +253,12 @@ abstract class BaseRikkaDialog(
             summary = displaySummary,
             iconName = iconName,
             onClick = { anchor, summaryView ->
+                val latestValue = ConfigManager.getDefaultConfig().getString(configKey, defaultValue) ?: defaultValue
+
                 showInputDialog(
                     key = configKey,
                     title = title,
-                    currentValue = currentValue,
+                    currentValue = latestValue,
                     hint = hint,
                     inputType = inputType,
                     maxLength = maxLength,
