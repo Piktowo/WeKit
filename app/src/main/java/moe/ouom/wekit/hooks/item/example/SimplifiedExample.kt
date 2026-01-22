@@ -150,6 +150,11 @@ class SimplifiedExample : BaseSwitchFunctionHookItem() /* 这里也可以继承 
         // 可选：如需取消Hook，调用 h2.unhook()
         h2.unhook()
 
+        // 方式 7: 自动 Hook 该类下所有同名的方法
+        hookBefore(targetClass, "targetMethod") { param ->
+            // ....
+        }
+
         // 此处不再举例....
     }
 

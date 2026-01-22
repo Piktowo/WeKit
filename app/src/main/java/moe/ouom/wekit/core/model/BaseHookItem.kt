@@ -179,6 +179,86 @@ abstract class BaseHookItem {
     }
 
     /**
+     * 适配 hookBefore(Class, MethodName, Action)
+     * 自动 Hook 该类下所有同名的方法
+     */
+    protected fun hookBefore(
+        clazz: Class<*>,
+        methodName: String,
+        action: HookAction
+    ): Set<XC_MethodHook.Unhook> {
+        return XposedBridge.hookAllMethods(
+            clazz,
+            methodName,
+            object : XC_MethodHook(ConfigManager.dGetInt(Constants.PrekCfgXXX + "wekit_hook_priority", 50)) {
+                override fun beforeHookedMethod(param: MethodHookParam) {
+                    tryExecute(param, action)
+                }
+            }
+        )
+    }
+
+    /**
+     * 适配 hookAfter(Class, MethodName, Action)
+     * 自动 Hook 该类下所有同名的方法
+     */
+    protected fun hookAfter(
+        clazz: Class<*>,
+        methodName: String,
+        action: HookAction
+    ): Set<XC_MethodHook.Unhook> {
+        return XposedBridge.hookAllMethods(
+            clazz,
+            methodName,
+            object : XC_MethodHook(ConfigManager.dGetInt(Constants.PrekCfgXXX + "wekit_hook_priority", 50)) {
+                override fun afterHookedMethod(param: MethodHookParam) {
+                    tryExecute(param, action)
+                }
+            }
+        )
+    }
+
+    /**
+     * 带优先级的版本 (Before)
+     */
+    protected fun hookBefore(
+        clazz: Class<*>,
+        methodName: String,
+        priority: Int,
+        action: HookAction
+    ): Set<XC_MethodHook.Unhook> {
+        return XposedBridge.hookAllMethods(
+            clazz,
+            methodName,
+            object : XC_MethodHook(priority) {
+                override fun beforeHookedMethod(param: MethodHookParam) {
+                    tryExecute(param, action)
+                }
+            }
+        )
+    }
+
+    /**
+     * 带优先级的版本 (After)
+     */
+    protected fun hookAfter(
+        clazz: Class<*>,
+        methodName: String,
+        priority: Int,
+        action: HookAction
+    ): Set<XC_MethodHook.Unhook> {
+        return XposedBridge.hookAllMethods(
+            clazz,
+            methodName,
+            object : XC_MethodHook(priority) {
+                override fun afterHookedMethod(param: MethodHookParam) {
+                    tryExecute(param, action)
+                }
+            }
+        )
+    }
+
+    /**
      * 带执行优先级的 hook (before)
      */
     protected fun hookBefore(method: Member, priority: Int, action: HookAction): XC_MethodHook.Unhook {

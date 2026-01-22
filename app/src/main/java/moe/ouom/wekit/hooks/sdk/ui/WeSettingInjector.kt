@@ -202,33 +202,23 @@ class WeSettingInjector : ApiHookItem(), IDexFind {
 
             WeLogger.i("WeSettingInjector: Created WeKit setting")
 
-            XposedBridge.hookAllMethods(
-                clsSettingsUI,
-                "onPreferenceTreeClick",
-                object : XC_MethodHook() {
-                    override fun beforeHookedMethod(param: MethodHookParam) {
-                        try {
-                            if (param.args.size < 2) return
-                            val preference = param.args[1] ?: return
+            hookBefore(clsSettingsUI, "onPreferenceTreeClick") { param ->
+                if (param.args.size < 2) return@hookBefore
+                val preference = param.args[1] ?: return@hookBefore
 
-                            val key = getKeyMethod.invoke(preference) as? String
-                            WeLogger.d("WeKit Debug: Click key = $key")
+                val key = getKeyMethod.invoke(preference) as? String
+                WeLogger.d("WeKit Debug: Click key = $key")
 
-                            if (KEY_WEKIT_ENTRY == key) {
-                                val activity = param.thisObject as Activity
+                if (KEY_WEKIT_ENTRY == key) {
+                    val activity = param.thisObject as Activity
 
-                                val fixContext = CommonContextWrapper.createAppCompatContext(activity)
-                                val dialog = MainSettingsDialog(fixContext)
-                                dialog.show()
-                                param.result = true
-                            }
-                        } catch (t: Throwable) {
-                            WeLogger.e(t)
-                            WeLogger.e("WeSettingInjector: Click handle error", t)
-                        }
-                    }
+                    val fixContext = CommonContextWrapper.createAppCompatContext(activity)
+                    val dialog = MainSettingsDialog(fixContext)
+                    dialog.show()
+
+                    param.result = true
                 }
-            )
+            }
 
             WeLogger.i("WeSettingInjector: Hooked onPreferenceTreeClick")
 
