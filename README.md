@@ -1,7 +1,7 @@
 <div align="center">
     <h1> WeKit </h1>
 
-[![Telegram](https://img.shields.io/static/v1?label=Telegram&message=Channel&color=0088cc)](https://t.me/ouom_pub)
+[![Telegram](https://img.shields.io/static/v1?label=Telegram&message=Channel&color=0088cc)](https://t.me/ouom_pub)  [![CI Builds](https://img.shields.io/static/v1?label=CI&message=BUILDS&color=9400D3)](https://t.me/wekit_ci)
 
 **WeChat, Now with Superpowers**
 
@@ -94,7 +94,7 @@ WeKit 在未来会尝试解决微信交互中的痛点，让社交回归工具�
 **警告：**
 Xposed 模块在注入宿主（微信）后，将获得与宿主同等的系统权限及内存访问能力。这意味着非官方渠道（如第三方修改版、未知社群转发）的 APK 极易被植入恶意代码以窃取隐私。
 
-**为了你的账号与隐私安全，请务必仅从本项目 GitHub Release 页面或官方 Telegram 频道下载**
+**为了你的账号与隐私安全，请务必仅从本项目 GitHub Release 页面或[官方 Telegram 频道](https://t.me/wekit_ci)下载**
 
 ---
 
