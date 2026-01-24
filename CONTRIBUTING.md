@@ -42,7 +42,7 @@
 ### 必需工具
 
 1. **Android Studio**: Ladybug | 2024.2.1 或更高版本
-2. **JDK**: JDK 17 或更高版本
+2. **JDK**: JDK 17
 3. **Android SDK**:
    - Compile SDK: 36
    - Build Tools: 最新版本
@@ -81,7 +81,7 @@ WeKit 采用模块化架构，主要分为以下几个层次：
 ```mermaid
 graph BT
     subgraph App_Layer [应用层]
-        UI[UI Layer: Compose]
+        UI[UI Layer]
     end
 
     subgraph Logic_Layer [业务与框架层]
