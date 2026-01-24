@@ -6,7 +6,7 @@ import android.content.Context
 import androidx.core.net.toUri
 import com.afollestad.materialdialogs.MaterialDialog
 import de.robv.android.xposed.XposedHelpers
-import moe.ouom.wekit.config.ConfigManager
+import moe.ouom.wekit.config.WeConfig
 import moe.ouom.wekit.constants.Constants
 import moe.ouom.wekit.constants.Constants.Companion.TYPE_LUCKY_MONEY
 import moe.ouom.wekit.constants.Constants.Companion.TYPE_LUCKY_MONEY_EXCLUSIVE
@@ -59,7 +59,7 @@ class WeRedPacketAuto : BaseClickableFunctionHookItem(), WeDatabaseApi.DatabaseI
      * 接口实现：处理数据库插入事件
      */
     override fun onInsert(table: String, values: ContentValues) {
-        val config = ConfigManager.getDefaultConfig()
+        val config = WeConfig.getDefaultConfig()
         val verboseLog = config.getBooleanOrFalse(Constants.PrekVerboseLog)
 
         if (verboseLog) {
@@ -77,7 +77,7 @@ class WeRedPacketAuto : BaseClickableFunctionHookItem(), WeDatabaseApi.DatabaseI
 
     private fun handleRedPacket(values: ContentValues) {
         try {
-            val config = ConfigManager.getDefaultConfig()
+            val config = WeConfig.getDefaultConfig()
             if (values.getAsInteger("isSend") == 1 && !config.getBoolPrek("red_packet_self")) return
 
             val content = values.getAsString("content") ?: return

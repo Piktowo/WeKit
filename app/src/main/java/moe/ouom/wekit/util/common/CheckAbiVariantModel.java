@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-import moe.ouom.wekit.config.ConfigManager;
+import moe.ouom.wekit.config.WeConfig;
 import moe.ouom.wekit.util.hookstatus.AbiUtils;
 
 
@@ -69,12 +69,12 @@ public class CheckAbiVariantModel {
     }
 
     public static void setPackageIgnored(@NonNull String packageName, boolean ignored) {
-        ConfigManager cfg = ConfigManager.getDefaultConfig();
+        WeConfig cfg = WeConfig.getDefaultConfig();
         cfg.putBoolean("native_lib_abi_ignore." + packageName, ignored);
     }
 
     public static boolean isPackageIgnored(@NonNull String packageName) {
-        ConfigManager cfg = ConfigManager.getDefaultConfig();
+        WeConfig cfg = WeConfig.getDefaultConfig();
         return cfg.getBoolean("native_lib_abi_ignore." + packageName, false);
     }
 

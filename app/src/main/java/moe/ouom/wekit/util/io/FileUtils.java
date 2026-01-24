@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Objects;
 
+import de.robv.android.xposed.XposedBridge;
 import moe.ouom.wekit.util.log.WeLogger;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -145,14 +146,19 @@ public class FileUtils {
                 } else {
                     try {
                         f.delete();
-                    } catch (Exception ignored) {}
+                    } catch (Exception e) {
+                        XposedBridge.log(e);
+                    }
                 }
             }
             try {
                 file.delete();
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                XposedBridge.log(e);
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            XposedBridge.log(e);
+        }
     }
 
     public static long getDirSize(File file) {
@@ -213,7 +219,9 @@ public class FileUtils {
             try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file, isAppend), StandardCharsets.UTF_8))) {
                 writer.write(content);
             } catch (IOException ignored) {}
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            XposedBridge.log(e);
+        }
 
     }
 

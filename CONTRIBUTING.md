@@ -1090,7 +1090,7 @@ class AutoGrabRedPacketConfigDialog(context: Context) : BaseRikkaDialog(context,
 package moe.ouom.wekit.hooks.item.chat.risk
 
 import android.content.Context
-import moe.ouom.wekit.config.ConfigManager
+import moe.ouom.wekit.config.WeConfig
 import moe.ouom.wekit.core.model.BaseClickableFunctionHookItem
 import moe.ouom.wekit.dexkit.intf.IDexFind
 import moe.ouom.wekit.hooks.core.annotation.HookItem

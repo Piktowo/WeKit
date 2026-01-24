@@ -4,7 +4,7 @@ import androidx.annotation.Keep
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
-import moe.ouom.wekit.config.ConfigManager
+import moe.ouom.wekit.config.WeConfig
 import moe.ouom.wekit.constants.Constants
 import moe.ouom.wekit.hooks.core.factory._ExceptionFactory
 import moe.ouom.wekit.loader.startup.HybridClassLoader
@@ -69,7 +69,7 @@ abstract class BaseHookItem {
      * 开始加载 Hook
      */
     fun startLoad() {
-        val config = ConfigManager.getDefaultConfig()
+        val config = WeConfig.getDefaultConfig()
         val verboseLog = config.getBooleanOrFalse(Constants.PrekVerboseLog)
 
         if (verboseLog) {
@@ -120,7 +120,7 @@ abstract class BaseHookItem {
      * 卸载 Hook
      */
     open fun unload(classLoader: ClassLoader) {
-        val config = ConfigManager.getDefaultConfig()
+        val config = WeConfig.getDefaultConfig()
         val verboseLog = config.getBooleanOrFalse(Constants.PrekVerboseLog)
 
         if (verboseLog) {
@@ -138,7 +138,7 @@ abstract class BaseHookItem {
     protected fun hookBefore(method: Member, action: HookAction): XC_MethodHook.Unhook {
         return XposedBridge.hookMethod(
             method,
-            object : XC_MethodHook(ConfigManager.dGetInt(Constants.PrekCfgXXX + "wekit_hook_priority", 50)) {
+            object : XC_MethodHook(WeConfig.dGetInt(Constants.PrekCfgXXX + "wekit_hook_priority", 50)) {
                 override fun beforeHookedMethod(param: MethodHookParam) {
                     tryExecute(param, action)
                 }
@@ -153,7 +153,7 @@ abstract class BaseHookItem {
     protected fun hookAfter(method: Member, action: HookAction): XC_MethodHook.Unhook {
         return XposedBridge.hookMethod(
             method,
-            object : XC_MethodHook(ConfigManager.dGetInt(Constants.PrekCfgXXX + "wekit_hook_priority", 50)) {
+            object : XC_MethodHook(WeConfig.dGetInt(Constants.PrekCfgXXX + "wekit_hook_priority", 50)) {
                 override fun afterHookedMethod(param: MethodHookParam) {
                     tryExecute(param, action)
                 }
@@ -176,7 +176,7 @@ abstract class BaseHookItem {
 
         return XposedBridge.hookMethod(
             m,
-            object : XC_MethodHook(ConfigManager.dGetInt(Constants.PrekCfgXXX + "wekit_hook_priority", 50)) {
+            object : XC_MethodHook(WeConfig.dGetInt(Constants.PrekCfgXXX + "wekit_hook_priority", 50)) {
                 override fun beforeHookedMethod(param: MethodHookParam) {
                     tryExecute(param, action)
                 }
@@ -199,7 +199,7 @@ abstract class BaseHookItem {
 
         return XposedBridge.hookMethod(
             m,
-            object : XC_MethodHook(ConfigManager.dGetInt(Constants.PrekCfgXXX + "wekit_hook_priority", 50)) {
+            object : XC_MethodHook(WeConfig.dGetInt(Constants.PrekCfgXXX + "wekit_hook_priority", 50)) {
                 override fun afterHookedMethod(param: MethodHookParam) {
                     tryExecute(param, action)
                 }
@@ -219,7 +219,7 @@ abstract class BaseHookItem {
         return XposedBridge.hookAllMethods(
             clazz,
             methodName,
-            object : XC_MethodHook(ConfigManager.dGetInt(Constants.PrekCfgXXX + "wekit_hook_priority", 50)) {
+            object : XC_MethodHook(WeConfig.dGetInt(Constants.PrekCfgXXX + "wekit_hook_priority", 50)) {
                 override fun beforeHookedMethod(param: MethodHookParam) {
                     tryExecute(param, action)
                 }
@@ -239,7 +239,7 @@ abstract class BaseHookItem {
         return XposedBridge.hookAllMethods(
             clazz,
             methodName,
-            object : XC_MethodHook(ConfigManager.dGetInt(Constants.PrekCfgXXX + "wekit_hook_priority", 50)) {
+            object : XC_MethodHook(WeConfig.dGetInt(Constants.PrekCfgXXX + "wekit_hook_priority", 50)) {
                 override fun afterHookedMethod(param: MethodHookParam) {
                     tryExecute(param, action)
                 }

@@ -15,18 +15,17 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import moe.ouom.wekit.constants.Constants;
 
-public abstract class ConfigManager implements SharedPreferences, SharedPreferences.Editor {
+public abstract class WeConfig implements SharedPreferences, SharedPreferences.Editor {
 
-    private static ConfigManager sDefConfig;
-    private static ConfigManager sCache;
-    private static final ConcurrentHashMap<String, ConfigManager> sUinConfig =
+    private static WeConfig sDefConfig;
+    private static WeConfig sCache;
+    private static final ConcurrentHashMap<String, WeConfig> sUinConfig =
             new ConcurrentHashMap<>(4);
 
-    protected ConfigManager() {
-    }
+    protected WeConfig() {}
 
     @NonNull
-    public static synchronized ConfigManager getDefaultConfig() {
+    public static synchronized WeConfig getDefaultConfig() {
         if (sDefConfig == null) {
             sDefConfig = new MmkvConfigManagerImpl("global_config");
         }
@@ -40,8 +39,8 @@ public abstract class ConfigManager implements SharedPreferences, SharedPreferen
      * @return config for raed/write
      */
     @NonNull
-    public static synchronized ConfigManager forAccount(String wxid) {
-        ConfigManager cfg = sUinConfig.get(wxid);
+    public static synchronized WeConfig forAccount(String wxid) {
+        WeConfig cfg = sUinConfig.get(wxid);
         if (cfg != null) {
             return cfg;
         }
@@ -60,13 +59,13 @@ public abstract class ConfigManager implements SharedPreferences, SharedPreferen
      * @return if no account is logged in, {@code null} will be returned.
      */
     @Nullable
-    public static ConfigManager getExFriendCfg() {
+    public static WeConfig getExFriendCfg() {
         // TODO: get current account
         return null;
     }
 
     @NonNull
-    public static synchronized ConfigManager getCache() {
+    public static synchronized WeConfig getCache() {
         if (sCache == null) {
             sCache = new MmkvConfigManagerImpl("global_cache");
         }
@@ -205,7 +204,7 @@ public abstract class ConfigManager implements SharedPreferences, SharedPreferen
     public abstract byte[] getBytesOrDefault(@NonNull String key, @NonNull byte[] defValue);
 
     @NonNull
-    public abstract ConfigManager putBytes(@NonNull String key, @NonNull byte[] value);
+    public abstract WeConfig putBytes(@NonNull String key, @NonNull byte[] value);
 
     /**
      * @return READ-ONLY all config
@@ -223,7 +222,7 @@ public abstract class ConfigManager implements SharedPreferences, SharedPreferen
     }
 
     @NonNull
-    public abstract ConfigManager putObject(@NonNull String key, @NonNull Object v);
+    public abstract WeConfig putObject(@NonNull String key, @NonNull Object v);
 
     public boolean containsKey(@NonNull String k) {
         return contains(k);

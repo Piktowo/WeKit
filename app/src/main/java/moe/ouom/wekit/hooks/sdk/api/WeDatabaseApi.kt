@@ -3,7 +3,7 @@ package moe.ouom.wekit.hooks.sdk.api
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import de.robv.android.xposed.XposedHelpers
-import moe.ouom.wekit.config.ConfigManager
+import moe.ouom.wekit.config.WeConfig
 import moe.ouom.wekit.constants.Constants
 import moe.ouom.wekit.core.model.ApiHookItem
 import moe.ouom.wekit.hooks.core.annotation.HookItem
@@ -60,7 +60,7 @@ class WeDatabaseApi : ApiHookItem() {
                     val table = param.args[0] as String
                     val values = param.args[2] as ContentValues
 
-                    val config = ConfigManager.getDefaultConfig()
+                    val config = WeConfig.getDefaultConfig()
                     val verboseLog = config.getBooleanOrFalse(Constants.PrekVerboseLog)
                     val dbVerboseLog = config.getBooleanOrFalse(Constants.PrekDatabaseVerboseLog)
 

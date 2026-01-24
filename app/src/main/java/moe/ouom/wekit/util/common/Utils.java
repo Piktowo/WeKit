@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
+import de.robv.android.xposed.XposedBridge;
 import moe.ouom.wekit.util.log.WeLogger;
 
 public class Utils {
@@ -50,7 +51,9 @@ public class Utils {
                     if (view.getContentDescription().equals(desc)) {
                         return view;
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    XposedBridge.log(e);
+                }
 
             }
             Thread.sleep(200);
@@ -68,7 +71,9 @@ public class Utils {
                     if (view.getContentDescription().equals(desc)) {
                         return view;
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    XposedBridge.log(e);
+                }
 
             }
         } catch (Exception e) {
@@ -164,7 +169,9 @@ public class Utils {
             URL Url = new URL(url);
             host = Url.getHost();
             type = Url.toURI().getScheme();
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            XposedBridge.log(e);
+        }
         return new String[] {host, type};
     }
 

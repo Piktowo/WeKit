@@ -19,7 +19,7 @@ import androidx.core.view.isEmpty
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.input.input
 import com.google.android.material.materialswitch.MaterialSwitch
-import moe.ouom.wekit.config.ConfigManager
+import moe.ouom.wekit.config.WeConfig
 import moe.ouom.wekit.constants.Constants
 import moe.ouom.wekit.ui.CommonContextWrapper
 import moe.ouom.wekit.util.common.ModuleRes
@@ -201,11 +201,11 @@ abstract class BaseRikkaDialog(
 
         // Key 处理逻辑
         val configKey = if (useFullKey) key else "${Constants.PrekXXX}$key"
-        val isChecked = ConfigManager.getDefaultConfig().getBooleanOrFalse(configKey)
+        val isChecked = WeConfig.getDefaultConfig().getBooleanOrFalse(configKey)
         switchWidget.isChecked = isChecked
 
         val listener = CompoundButton.OnCheckedChangeListener { _, checked ->
-            ConfigManager.getDefaultConfig().edit().putBoolean(configKey, checked).apply()
+            WeConfig.getDefaultConfig().edit().putBoolean(configKey, checked).apply()
             WeLogger.d("BaseRikkaDialog: Config changed [$configKey] -> $checked")
             updateDependencies(configKey, checked)
         }
@@ -252,7 +252,7 @@ abstract class BaseRikkaDialog(
     ): View {
         val configKey = if (useFullKey) key else "${Constants.PrekXXX}$key"
 
-        val initialValue = ConfigManager.getDefaultConfig().getString(configKey, defaultValue) ?: defaultValue
+        val initialValue = WeConfig.getDefaultConfig().getString(configKey, defaultValue) ?: defaultValue
 
         val displaySummary = if (summaryFormatter != null) {
             summaryFormatter(initialValue)
@@ -265,7 +265,7 @@ abstract class BaseRikkaDialog(
             summary = displaySummary,
             iconName = iconName,
             onClick = { anchor, summaryView ->
-                val latestValue = ConfigManager.getDefaultConfig().getString(configKey, defaultValue) ?: defaultValue
+                val latestValue = WeConfig.getDefaultConfig().getString(configKey, defaultValue) ?: defaultValue
 
                 showInputDialog(
                     key = configKey,
@@ -308,7 +308,7 @@ abstract class BaseRikkaDialog(
         useFullKey: Boolean = false
     ): View {
         val configKey = if (useFullKey) key else "${Constants.PrekXXX}$key"
-        val currentValue = ConfigManager.getDefaultConfig().getInt(configKey, defaultValue)
+        val currentValue = WeConfig.getDefaultConfig().getInt(configKey, defaultValue)
         val displaySummary = options[currentValue] ?: "$summary: $currentValue"
 
         val summaryTextView = addPreference(
@@ -349,7 +349,7 @@ abstract class BaseRikkaDialog(
 
         // 立即读取当前配置并应用状态
         // 防止 addSwitchPreference 先执行完了，导致这里错过了初始化的机会
-        val currentValue = ConfigManager.getDefaultConfig().getBooleanOrFalse(configKey)
+        val currentValue = WeConfig.getDefaultConfig().getBooleanOrFalse(configKey)
 
         val shouldEnable = if (enableWhen) currentValue else !currentValue
 
@@ -445,7 +445,7 @@ abstract class BaseRikkaDialog(
             ) { dialog, text ->
                 // 用户点击确定后的回调
                 val newValue = text.toString()
-                ConfigManager.getDefaultConfig().edit().putString(key, newValue).apply()
+                WeConfig.getDefaultConfig().edit().putString(key, newValue).apply()
 
                 val displayText = if (summaryFormatter != null) {
                     summaryFormatter(newValue)
@@ -479,7 +479,7 @@ abstract class BaseRikkaDialog(
         val popup = PopupMenu(context, anchor)
         options.forEach { (value, displayText) ->
             popup.menu.add(displayText).setOnMenuItemClickListener {
-                ConfigManager.getDefaultConfig().edit().putInt(key, value).apply()
+                WeConfig.getDefaultConfig().edit().putInt(key, value).apply()
                 summaryView?.text = displayText
                 WeLogger.d("BaseRikkaDialog: Config changed [$key] -> $value")
                 true

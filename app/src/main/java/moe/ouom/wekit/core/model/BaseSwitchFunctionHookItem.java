@@ -5,7 +5,7 @@ import android.content.Context;
 import androidx.annotation.NonNull;
 
 import de.robv.android.xposed.XC_MethodHook;
-import moe.ouom.wekit.config.ConfigManager;
+import moe.ouom.wekit.config.WeConfig;
 import moe.ouom.wekit.constants.Constants;
 import moe.ouom.wekit.loader.startup.HybridClassLoader;
 import moe.ouom.wekit.util.common.SyncUtils;
@@ -36,7 +36,7 @@ public abstract class BaseSwitchFunctionHookItem extends BaseHookItem {
     public void applyToggle(boolean newState) {
         // 1. 保存配置
         String configKey = Constants.PrekXXX + this.getPath();
-        ConfigManager.getDefaultConfig().edit().putBoolean(configKey, newState).apply();
+        WeConfig.getDefaultConfig().edit().putBoolean(configKey, newState).apply();
 
         // 2. 更新状态
         this.setEnabled(newState);
@@ -105,7 +105,7 @@ public abstract class BaseSwitchFunctionHookItem extends BaseHookItem {
     }
 
     public boolean configIsEnable() {
-        return ConfigManager.getDefaultConfig().getBooleanOrFalse(Constants.PrekXXX+this.getPath());
+        return WeConfig.getDefaultConfig().getBooleanOrFalse(Constants.PrekXXX+this.getPath());
     }
 
 }

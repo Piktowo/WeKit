@@ -1,7 +1,7 @@
 package moe.ouom.wekit.hooks.core
 
 import android.content.pm.ApplicationInfo
-import moe.ouom.wekit.config.ConfigManager
+import moe.ouom.wekit.config.WeConfig
 import moe.ouom.wekit.config.RuntimeConfig
 import moe.ouom.wekit.constants.Constants.Companion.PrekClickableXXX
 import moe.ouom.wekit.constants.Constants.Companion.PrekXXX
@@ -61,9 +61,11 @@ class HookItemLoader {
 
                 // 循环条件增加超时判断
                 while (System.currentTimeMillis() - startTime < timeoutMs) {
+                    if (process != SyncUtils.PROC_MAIN) return@Thread
+
                     try {
                         Thread.sleep(10)
-                    } catch (e: InterruptedException) {
+                    } catch (_: InterruptedException) {
                         return@Thread
                     }
 
@@ -118,12 +120,12 @@ class HookItemLoader {
 
             when (hookItem) {
                 is BaseSwitchFunctionHookItem -> {
-                    hookItem.isEnabled = ConfigManager.getDefaultConfig()
+                    hookItem.isEnabled = WeConfig.getDefaultConfig()
                         .getBooleanOrFalse("$PrekXXX${hookItem.path}")
                     isEnabled = hookItem.isEnabled && process == hookItem.targetProcess
                 }
                 is BaseClickableFunctionHookItem -> {
-                    hookItem.isEnabled = ConfigManager.getDefaultConfig()
+                    hookItem.isEnabled = WeConfig.getDefaultConfig()
                         .getBooleanOrFalse("$PrekClickableXXX${hookItem.path}")
                     isEnabled = (hookItem.isEnabled && process == hookItem.targetProcess) || hookItem.alwaysRun
                 }

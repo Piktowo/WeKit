@@ -14,7 +14,7 @@ public class WeLogger {
 
     private static final String TAG = BuildConfig.TAG;
 
-    // ========== String==========
+    // ========== String ==========
     public static void e(@NonNull String msg) {
         android.util.Log.e(TAG, msg);
         try {
@@ -191,6 +191,55 @@ public class WeLogger {
             Log.e(BuildConfig.TAG, "common", error);
         }
     }
+
+    // ========== Tag + String + Throwable ==========
+
+    public static void e(String tag, @NonNull String msg, @NonNull Throwable e) {
+        android.util.Log.e(TAG, tag + ": " + msg, e);
+        try {
+            LogUtils.addError("common", e);
+        } catch (ExceptionInInitializerError | NoClassDefFoundError error) {
+            Log.e(BuildConfig.TAG, "common", error);
+        }
+    }
+
+    public static void w(String tag, @NonNull String msg, @NonNull Throwable e) {
+        android.util.Log.w(TAG, tag + ": " + msg, e);
+        try {
+            LogUtils.addError("common", e);
+        } catch (ExceptionInInitializerError | NoClassDefFoundError error) {
+            Log.e(BuildConfig.TAG, "common", error);
+        }
+    }
+
+    public static void i(String tag, @NonNull String msg, @NonNull Throwable e) {
+        android.util.Log.i(TAG, tag + ": " + msg, e);
+        try {
+            LogUtils.addError("common", e);
+        } catch (ExceptionInInitializerError | NoClassDefFoundError error) {
+            Log.e(BuildConfig.TAG, "common", error);
+        }
+    }
+
+    public static void d(String tag, @NonNull String msg, @NonNull Throwable e) {
+        android.util.Log.d(TAG, tag + ": " + msg, e);
+        try {
+            LogUtils.addError("common", e);
+        } catch (ExceptionInInitializerError | NoClassDefFoundError error) {
+            Log.e(BuildConfig.TAG, "common", error);
+        }
+    }
+
+    public static void v(String tag, @NonNull String msg, @NonNull Throwable e) {
+        android.util.Log.v(TAG, tag + ": " + msg, e);
+        try {
+            LogUtils.addError("common", e);
+        } catch (ExceptionInInitializerError | NoClassDefFoundError error) {
+            Log.e(BuildConfig.TAG, "common", error);
+        }
+    }
+
+    // ========== String + Throwable ==========
 
     public static void e(@NonNull String msg, @NonNull Throwable e) {
         android.util.Log.e(TAG, msg, e);

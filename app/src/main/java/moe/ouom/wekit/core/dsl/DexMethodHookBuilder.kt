@@ -2,7 +2,7 @@ package moe.ouom.wekit.core.dsl
 
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
-import moe.ouom.wekit.config.ConfigManager
+import moe.ouom.wekit.config.WeConfig
 import moe.ouom.wekit.constants.Constants
 import moe.ouom.wekit.hooks.core.factory._ExceptionFactory
 import moe.ouom.wekit.util.log.WeLogger
@@ -55,7 +55,7 @@ class DexMethodHookBuilder(
      * 执行 Hook
      */
     fun execute() {
-        val p = priority ?: ConfigManager.dGetInt(
+        val p = priority ?: WeConfig.dGetInt(
             "${Constants.PrekCfgXXX}wekit_hook_priority",
             50
         )

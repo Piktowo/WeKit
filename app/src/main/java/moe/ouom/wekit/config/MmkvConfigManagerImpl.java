@@ -24,7 +24,7 @@ import java.util.Set;
 import moe.ouom.wekit.util.log.WeLogger;
 
 
-public class MmkvConfigManagerImpl extends ConfigManager {
+public class MmkvConfigManagerImpl extends WeConfig {
 
     private final MMKV mmkv;
     private final File file;
@@ -474,7 +474,7 @@ public class MmkvConfigManagerImpl extends ConfigManager {
 
     @NonNull
     @Override
-    public ConfigManager putObject(@NonNull String key, @NonNull Object v) {
+    public WeConfig putObject(@NonNull String key, @NonNull Object v) {
         if (v == null || key == null) {
             throw new NullPointerException("null key/value not allowed");
         }
@@ -574,7 +574,7 @@ public class MmkvConfigManagerImpl extends ConfigManager {
 
     @NonNull
     @Override
-    public ConfigManager putBytes(@NonNull String key, @NonNull byte[] value) {
+    public WeConfig putBytes(@NonNull String key, @NonNull byte[] value) {
         mmkv.putBytes(key, value);
         mmkv.putInt(key.concat(TYPE_SUFFIX), TYPE_BYTES);
         return this;

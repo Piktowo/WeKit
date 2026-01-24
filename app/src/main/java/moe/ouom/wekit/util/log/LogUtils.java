@@ -8,7 +8,8 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
-import moe.ouom.wekit.config.ConfigManager;
+import de.robv.android.xposed.XposedBridge;
+import moe.ouom.wekit.config.WeConfig;
 import moe.ouom.wekit.util.io.FileUtils;
 import moe.ouom.wekit.util.io.PathTool;
 
@@ -98,10 +99,12 @@ public class LogUtils {
 
     private static void addLog(String fileName, String Description, Object content, boolean isError) {
         try {
-            if (!ConfigManager.getDefaultConfig().getBooleanOrFalse(PrekEnableLog)){
+            if (!WeConfig.getDefaultConfig().getBooleanOrFalse(PrekEnableLog)){
                 return;
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            XposedBridge.log(e);
+        }
 
         String directory = isError ? getErrorLogDirectory() : getRunLogDirectory();
         if (directory == null) {

@@ -5,7 +5,7 @@ import android.view.View
 import android.widget.CompoundButton
 import android.widget.TextView
 import com.google.android.material.materialswitch.MaterialSwitch
-import moe.ouom.wekit.config.ConfigManager
+import moe.ouom.wekit.config.WeConfig
 import moe.ouom.wekit.constants.Constants
 import moe.ouom.wekit.core.bridge.HookFactoryBridge
 import moe.ouom.wekit.core.model.BaseClickableFunctionHookItem
@@ -51,7 +51,7 @@ class CategorySettingsDialog(
         tvSummary.text = summary
 
         val configKey = "${Constants.PrekXXX}${item.path}"
-        val isChecked = ConfigManager.getDefaultConfig().getBooleanOrFalse(configKey)
+        val isChecked = WeConfig.getDefaultConfig().getBooleanOrFalse(configKey)
 
         switchWidget.isChecked = isChecked
 
@@ -73,7 +73,7 @@ class CategorySettingsDialog(
             }
 
             // 允许切换,保存配置并更新状态
-            ConfigManager.getDefaultConfig().edit().putBoolean(configKey, checked).apply()
+            WeConfig.getDefaultConfig().edit().putBoolean(configKey, checked).apply()
             item.isEnabled = checked
             if (checked) item.startLoad()
         }
@@ -111,7 +111,7 @@ class CategorySettingsDialog(
         tvSummary.text = summary
 
         val configKey = "${Constants.PrekClickableXXX}${item.path}"
-        val isChecked = ConfigManager.getDefaultConfig().getBooleanOrFalse(configKey)
+        val isChecked = WeConfig.getDefaultConfig().getBooleanOrFalse(configKey)
 
         switchWidget.isChecked = isChecked
 
@@ -133,7 +133,7 @@ class CategorySettingsDialog(
             }
 
             // 允许切换,保存配置并更新状态
-            ConfigManager.getDefaultConfig().edit().putBoolean(configKey, checked).apply()
+            WeConfig.getDefaultConfig().edit().putBoolean(configKey, checked).apply()
             item.isEnabled = checked
             if (checked) {
                 WeLogger.i("[CategorySettings] Loading HookItem: ${item.path}")

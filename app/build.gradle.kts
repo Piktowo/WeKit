@@ -169,9 +169,9 @@ tasks.register("generateMethodHashes") {
             .forEach { file ->
                 val content = file.readText()
 
-                // 检查是否实现了 IDexFind
+                // 1. 检查是否实现了 IDexFind
                 if (content.contains("IDexFind")) {
-                    // 提取包名和类名
+                    // 2. 提取包名和类名
                     val packageRegex = Regex("""package\s+([\w.]+)""")
                     val classNameRegex = Regex("""(?:class|object)\s+(\w+)""")
 
@@ -179,7 +179,7 @@ tasks.register("generateMethodHashes") {
                     val className = classNameRegex.find(content)?.groupValues?.get(1) ?: return@forEach
                     val fullClassName = if (packageName != null) "$packageName.$className" else className
 
-                    // 提取 dexFind 方法体
+                    // 3. 提取 dexFind 方法体
                     // 定位 "override fun dexFind"
                     val dexFindMatch = Regex("""override\s+fun\s+dexFind\s*\(""").find(content)
 
@@ -225,7 +225,7 @@ tasks.register("generateMethodHashes") {
             println("   📊 Total: ${hashMap.size} methods hashed")
         }
 
-        // 生成 Kotlin 文件
+        // 5. 生成 Kotlin 文件
         outputFile.parentFile.mkdirs()
         val mapEntries = hashMap.entries.sortedBy { it.key }.joinToString(",\n        ") { (className, hash) ->
             "\"$className\" to \"$hash\""
@@ -241,6 +241,7 @@ tasks.register("generateMethodHashes") {
                 private val hashes: Map<String, String> = mapOf(
                     $mapEntries
                 )
+
                 fun getHash(className: String): String {
                     return hashes[className] ?: ""
                 }
@@ -254,7 +255,7 @@ tasks.register("generateMethodHashes") {
 
 android {
     namespace = "moe.ouom.wekit"
-    compileSdk = 36
+    compileSdk = Version.compileSdkVersion
 
     val buildUUID = UUID.randomUUID()
     println(
@@ -444,11 +445,14 @@ afterEvaluate {
 }
 
 android.applicationVariants.all {
+    val variant = this
+    val buildTypeName = variant.buildType.name.uppercase()
+
     outputs.all {
         if (this is com.android.build.gradle.internal.api.ApkVariantOutputImpl) {
             val config = project.android.defaultConfig
             val versionName = config.versionName
-            this.outputFileName = "WeKit-RELEASE-${versionName}.apk"
+            this.outputFileName = "WeKit-${buildTypeName}-${versionName}.apk"
         }
     }
 }
