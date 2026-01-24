@@ -98,6 +98,11 @@ Xposed 模块在注入宿主（微信）后，将获得与宿主同等的系统�
 
 ---
 
+# Contributing to WeKit / 贡献指南
+感谢你对 WeKit 的兴趣！在提交 PR 前，请先阅读完整的 [CONTRIBUTING.md](./CONTRIBUTING.md)，谢谢！
+
+---
+
 # 许可证 / License
 WeKit 使用 **GPL-3.0** 开源许可证发布。
 
