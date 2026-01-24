@@ -49,7 +49,8 @@ fun isWeChat(): Boolean {
     return hostInfo.hostSpecies == HostSpecies.WeChat
 }
 
-fun requireMinWeChatVersion(versionCode: Long): Boolean {
+fun requireMinWeChatVersion(versionCode: Int): Boolean {
+    WeLogger.d("requireMinWeChatVersion: $versionCode, ${hostInfo.versionCode}, ${isWeChat()}")
     return isWeChat() && hostInfo.versionCode >= versionCode
 }
 

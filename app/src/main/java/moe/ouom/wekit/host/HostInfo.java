@@ -66,7 +66,7 @@ public class HostInfo {
         return moe.ouom.wekit.host.impl.HostInfo.isWeChat();
     }
 
-    public static boolean requireMinWeChatVersion(long versionCode) {
+    public static boolean requireMinWeChatVersion(int versionCode) {
         return isWeChat() && getLongVersionCode() >= versionCode;
     }
 }

@@ -7,15 +7,15 @@ import android.content.Context
 import android.view.Menu
 import android.view.MenuItem
 import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
-import moe.ouom.wekit.config.RuntimeConfig
 import moe.ouom.wekit.constants.Constants
+import moe.ouom.wekit.constants.MMVersion
 import moe.ouom.wekit.core.dsl.dexMethod
 import moe.ouom.wekit.core.model.ApiHookItem
 import moe.ouom.wekit.dexkit.DexMethodDescriptor
 import moe.ouom.wekit.dexkit.intf.IDexFind
 import moe.ouom.wekit.hooks.core.annotation.HookItem
+import moe.ouom.wekit.host.impl.requireMinWeChatVersion
 import moe.ouom.wekit.ui.CommonContextWrapper
 import moe.ouom.wekit.ui.creator.dialog.MainSettingsDialog
 import moe.ouom.wekit.util.log.WeLogger
@@ -164,11 +164,10 @@ class WeSettingInjector : ApiHookItem(), IDexFind {
             }
 
             // 检查微信版本
-            if (RuntimeConfig.getWechatVersionCode() >= 3000) {
+            if (requireMinWeChatVersion(MMVersion.MM_8_0_67)) {
                 return // 是新版，跳过
             }
 
-            // 直接使用 .method 访问器
             val setKeyMethod = dexMethodSetKey.method
             val setTitleMethod = dexMethodSetTitle.method
             val getKeyMethod = dexMethodGetKey.method
