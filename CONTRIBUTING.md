@@ -24,7 +24,7 @@
 ### 核心信息
 - **包名**: `moe.ouom.wekit`
 - **目标应用**: 微信 (com.tencent.mm)
-- **最低 Android 版本**: Android 10.0+ (API 26)
+- **最低 Android 版本**: Android 10.0+ (API 29)
 - **最低微信版本**: 8.0.65+
 - **Xposed 最低版本**: 51
 
