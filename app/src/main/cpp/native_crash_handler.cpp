@@ -1,5 +1,5 @@
 #include "native_crash_handler.h"
-#include <signal.h>
+#include <csignal>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>

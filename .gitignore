@@ -32,3 +32,8 @@ local.properties
 /app/debug/
 /.kotlin
 /nul
+/app/src/main/java/moe/ouom/wekit/hooks/sdk/api/debug/
+/app/src/main/cpp/include/generated_checksums.h
+/app/src/main/cpp/include/generated_hidden_dex.h
+/app/nul
+/.idea/deploymentTargetSelector.xml

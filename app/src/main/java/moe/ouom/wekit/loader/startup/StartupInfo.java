@@ -7,6 +7,7 @@ import androidx.annotation.Nullable;
 
 import java.util.Objects;
 
+import lombok.Getter;
 import moe.ouom.wekit.loader.hookapi.IHookBridge;
 import moe.ouom.wekit.loader.hookapi.ILoaderService;
 
@@ -20,7 +21,8 @@ public class StartupInfo {
     private static String modulePath;
 
     private static Boolean isInitMethod;
-    private static Application hostApp;
+    @Getter
+    public static Application hostApp;
     private static ILoaderService loaderService;
     private static IHookBridge hookBridge;
 
@@ -34,13 +36,10 @@ public class StartupInfo {
         return modulePath;
     }
 
+
     public static Application getHostApp() {
-        if (hostApp == null) {
-            throw new IllegalStateException("hostApp is null");
-        }
         return hostApp;
     }
-
 
     public static void setHostApp(Application hostApp) {
         Objects.requireNonNull(hostApp);

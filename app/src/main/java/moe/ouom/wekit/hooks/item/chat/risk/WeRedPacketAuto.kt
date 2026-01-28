@@ -217,7 +217,7 @@ class WeRedPacketAuto : BaseClickableFunctionHookItem(), WeDatabaseApi.DatabaseI
         val descriptors = mutableMapOf<String, String>()
 
         // 查找接收红包类
-        dexClsReceiveLuckyMoney.find(dexKit, allowMultiple = true, descriptors) {
+        dexClsReceiveLuckyMoney.find(dexKit, descriptors, allowMultiple = true) {
             matcher {
                 methods {
                     add {
@@ -229,7 +229,7 @@ class WeRedPacketAuto : BaseClickableFunctionHookItem(), WeDatabaseApi.DatabaseI
         }
 
         // 查找开红包类
-        val foundOpen = dexClsOpenLuckyMoney.find(dexKit, allowMultiple = true, descriptors) {
+        val foundOpen = dexClsOpenLuckyMoney.find(dexKit, descriptors, allowMultiple = true) {
             matcher {
                 methods {
                     add {

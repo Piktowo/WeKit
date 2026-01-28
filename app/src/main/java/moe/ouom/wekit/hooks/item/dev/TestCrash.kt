@@ -9,6 +9,7 @@ import com.afollestad.materialdialogs.list.listItems
 import moe.ouom.wekit.core.model.BaseClickableFunctionHookItem
 import moe.ouom.wekit.hooks.core.annotation.HookItem
 import moe.ouom.wekit.ui.CommonContextWrapper
+import moe.ouom.wekit.util.Initiator.loadClass
 import moe.ouom.wekit.util.common.Toasts.showToast
 import moe.ouom.wekit.util.crash.NativeCrashHandler
 import moe.ouom.wekit.util.log.WeLogger
@@ -32,8 +33,8 @@ class TestCrash : BaseClickableFunctionHookItem() {
     override fun entry(classLoader: ClassLoader) {
         WeLogger.i("TestCrash", "=== TestCrash entry() called ===")
         try {
-            // 获取Application Context
-            val activityThreadClass = classLoader.loadClass("android.app.ActivityThread")
+            // 获取 Application Context
+            val activityThreadClass = loadClass("android.app.ActivityThread")
             val currentApplicationMethod = activityThreadClass.getMethod("currentApplication")
             appContext = currentApplicationMethod.invoke(null) as? Context
 

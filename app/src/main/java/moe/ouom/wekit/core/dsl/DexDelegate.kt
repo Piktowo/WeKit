@@ -60,8 +60,8 @@ class DexClassDelegate internal constructor(
      */
     fun find(
         dexKit: DexKitBridge,
-        allowMultiple: Boolean = false,
         descriptors: MutableMap<String, String>? = null,
+        allowMultiple: Boolean = false,
         throwOnFailure: Boolean = true,
         block: FindClass.() -> Unit
     ): Boolean {
@@ -144,6 +144,7 @@ class DexMethodDelegate internal constructor(
         allowMultiple: Boolean = false,
         descriptors: MutableMap<String, String>? = null,
         throwOnFailure: Boolean = true,
+        resultIndex: Int = 0,
         block: FindMethod.() -> Unit
     ): Boolean {
         val results = dexKit.findMethod(block).toList()
@@ -159,7 +160,7 @@ class DexMethodDelegate internal constructor(
             throw RuntimeException("DexKit: Multiple methods found for key: $key, count: ${results.size}")
         }
 
-        val methodData = results[0]
+        val methodData = results[resultIndex]
         val desc = DexMethodDescriptor(
             methodData.className,
             methodData.methodName,
