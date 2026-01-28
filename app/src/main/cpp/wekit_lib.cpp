@@ -19,6 +19,7 @@
 #include "generated_checksums.h"
 #include "generated_hidden_dex.h"
 #include "skCrypter.h"
+#include "native_crash_handler.h"
 
 #define LOG_TAG "[WeKit-TAG] wekit-native"
 
@@ -62,8 +63,8 @@
 #define API_EXPORT __attribute__((visibility("default")))
 #define INTERNAL_FUNC __attribute__((visibility("hidden")))
 
-// 定义一个特殊的结构体，用于在编译后被Gradle脚本填充
-// 使用 0xCCCCCCCC 作为占位符，Gradle会寻找 MAGIC_TAG 并填充后面的 part
+// 定义一个特殊的结构体，用于在编译后被 Gradle 脚本填充
+// 使用 0xCCCCCCCC 作为占位符，Gradle 会寻找 MAGIC_TAG 并填充后面的 part
 struct IntegrityStore {
     uint32_t magic_tag;      // 用于定位的魔数
     uint32_t hash_part_1;    // Hash 的第 1 部分 (如: Hash ^ 0xA5A5A5A5)
@@ -1010,15 +1011,56 @@ INTERNAL_FUNC static jbyteArray ngd(JNIEnv* env, jobject thiz) {
 }
 
 INTERNAL_FUNC static int
-registerNativeMethods(JNIEnv *env, const char *className, const JNINativeMethod *methods) {
+registerNativeMethods(JNIEnv *env, const char *className, const JNINativeMethod *methods, int methodCount) {
     jclass clazz = env->FindClass(className);
     if (clazz == nullptr) {
         return JNI_FALSE;
     }
-    if (env->RegisterNatives(clazz, methods, 2) < 0) {
+    if (env->RegisterNatives(clazz, methods, methodCount) < 0) {
         return JNI_FALSE;
     }
     return JNI_TRUE;
+}
+
+// ==================== Native Crash Handler JNI Functions ====================
+
+/**
+ * 安装 Native 崩溃拦截器
+ * Java 签名: (Ljava/lang/String;)Z
+ */
+extern "C" JNIEXPORT jboolean JNICALL
+Java_moe_ouom_wekit_util_crash_NativeCrashHandler_installNative(JNIEnv* env, jobject thiz, jstring crashLogDir) {
+    if (crashLogDir == nullptr) {
+        return JNI_FALSE;
+    }
+
+    const char* dir = env->GetStringUTFChars(crashLogDir, nullptr);
+    if (dir == nullptr) {
+        return JNI_FALSE;
+    }
+
+    jboolean result = install_native_crash_handler(env, dir);
+    env->ReleaseStringUTFChars(crashLogDir, dir);
+
+    return result;
+}
+
+/**
+ * 卸载 Native 崩溃拦截器
+ * Java 签名: ()V
+ */
+extern "C" JNIEXPORT void JNICALL
+Java_moe_ouom_wekit_util_crash_NativeCrashHandler_uninstallNative(JNIEnv* env, jobject thiz) {
+    uninstall_native_crash_handler();
+}
+
+/**
+ * 触发测试崩溃
+ * Java 签名: (I)V
+ */
+extern "C" JNIEXPORT void JNICALL
+Java_moe_ouom_wekit_util_crash_NativeCrashHandler_triggerTestCrashNative(JNIEnv* env, jobject thiz, jint crashType) {
+    trigger_test_crash(crashType);
 }
 
 
@@ -1034,7 +1076,7 @@ API_EXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
         return JNI_ERR;
     }
 
-    if (registerNativeMethods(env, skCrypt("moe/ouom/wekit/loader/core/WeKitNative"), gMethods) != JNI_TRUE) {
+    if (registerNativeMethods(env, skCrypt("moe/ouom/wekit/loader/core/WeKitNative"), gMethods, 2) != JNI_TRUE) {
         return JNI_ERR;
     }
 

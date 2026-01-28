@@ -9,8 +9,11 @@ import com.afollestad.materialdialogs.list.listItems
 import moe.ouom.wekit.core.model.BaseClickableFunctionHookItem
 import moe.ouom.wekit.hooks.core.annotation.HookItem
 import moe.ouom.wekit.ui.CommonContextWrapper
+import moe.ouom.wekit.util.Initiator.loadClass
 import moe.ouom.wekit.util.common.Toasts.showToast
+import moe.ouom.wekit.util.common.Utils.formatFileSize
 import moe.ouom.wekit.util.crash.CrashLogManager
+import moe.ouom.wekit.util.io.SafUtils
 import moe.ouom.wekit.util.log.WeLogger
 import java.io.File
 import java.text.SimpleDateFormat
@@ -36,7 +39,7 @@ class CrashLogViewer : BaseClickableFunctionHookItem() {
     override fun entry(classLoader: ClassLoader) {
         try {
             // 获取 Application Context
-            val activityThreadClass = classLoader.loadClass("android.app.ActivityThread")
+            val activityThreadClass = loadClass("android.app.ActivityThread")
             val currentApplicationMethod = activityThreadClass.getMethod("currentApplication")
             appContext = currentApplicationMethod.invoke(null) as? Context
 
@@ -278,53 +281,69 @@ class CrashLogViewer : BaseClickableFunctionHookItem() {
     }
 
     /**
-     * 导出日志到Download文件夹
+     * 导出日志
      */
     private fun exportLog(context: Context, logFile: File) {
         try {
-            val manager = crashLogManager ?: return
-
-            // 获取Download目录
-            val downloadDir = android.os.Environment.getExternalStoragePublicDirectory(
-                android.os.Environment.DIRECTORY_DOWNLOADS
-            )
-
-            if (!downloadDir.exists()) {
-                downloadDir.mkdirs()
-            }
-
-            // 生成导出文件名
-            val exportFileName = "wekit_${logFile.name}"
-            val exportFile = File(downloadDir, exportFileName)
-
-            // 复制文件
-            logFile.copyTo(exportFile, overwrite = true)
-
-            val message = "日志已导出到:\n${exportFile.absolutePath}"
-
             Handler(Looper.getMainLooper()).post {
                 try {
                     val wrappedContext = CommonContextWrapper.createAppCompatContext(context)
 
-                    MaterialDialog(wrappedContext)
-                        .title(text = "导出成功")
-                        .message(text = message)
-                        .positiveButton(text = "复制路径") {
-                            copyTextToClipboard(context, exportFile.absolutePath, "文件路径")
-                            showToast(context, "路径已复制")
+                    SafUtils.requestSaveFile(wrappedContext)
+                        .setDefaultFileName("wekit_${logFile.name}")
+                        .setMimeType("text/plain")
+                        .onResult { uri ->
+                            writeLogToUri(context, logFile, uri)
                         }
-                        .negativeButton(text = "关闭")
-                        .show()
+                        .onCancel {
+                            showToast(context, "取消导出")
+                        }
+                        .commit()
+
                 } catch (e: Throwable) {
-                    WeLogger.e("[CrashLogViewer] Failed to show export dialog", e)
+                    WeLogger.e("[CrashLogViewer] Failed to start SAF export", e)
+                    showToast(context, "启动导出失败: ${e.message}")
                 }
             }
-
-            WeLogger.i("CrashLogViewer", "Exported crash log to: ${exportFile.absolutePath}")
         } catch (e: Throwable) {
             WeLogger.e("[CrashLogViewer] Failed to export log", e)
-            showToast(context, "导出失败: ${e.message}")
+            showToast(context, "导出错误: ${e.message}")
         }
+    }
+
+    /**
+     * 将日志文件内容写入到用户选择的 Uri 中
+     */
+    private fun writeLogToUri(context: Context, sourceFile: File, targetUri: android.net.Uri) {
+        // 建议在子线程执行 IO 操作，防止阻塞主线程
+        Thread {
+            try {
+                val manager = crashLogManager ?: return@Thread
+                val crashInfo = manager.readCrashLog(sourceFile) ?: run {
+                    Handler(Looper.getMainLooper()).post {
+                        showToast(context, "读取源日志失败")
+                    }
+                    return@Thread
+                }
+
+                // 使用 ContentResolver 打开输出流写入数据
+                context.contentResolver.openOutputStream(targetUri)?.use { outputStream ->
+                    outputStream.write(crashInfo.toByteArray())
+                    outputStream.flush()
+                }
+
+                WeLogger.i("CrashLogViewer", "Exported log to URI: $targetUri")
+
+                Handler(Looper.getMainLooper()).post {
+                    showToast(context, "导出成功")
+                }
+            } catch (e: Throwable) {
+                WeLogger.e("[CrashLogViewer] Failed to write to URI", e)
+                Handler(Looper.getMainLooper()).post {
+                    showToast(context, "写入文件失败: ${e.message}")
+                }
+            }
+        }.start()
     }
 
     /**
@@ -435,7 +454,7 @@ class CrashLogViewer : BaseClickableFunctionHookItem() {
                         foundException = true
                         summary.append("\n异常信息:\n")
                     }
-                    foundException && lineCount < 5 -> {
+                    foundException -> {
                         if (line.trim().isNotEmpty() && !line.contains("====")) {
                             summary.append(line).append("\n")
                             lineCount++
@@ -473,17 +492,6 @@ class CrashLogViewer : BaseClickableFunctionHookItem() {
     private fun formatTime(timestamp: Long): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         return sdf.format(Date(timestamp))
-    }
-
-    /**
-     * 格式化文件大小
-     */
-    private fun formatFileSize(size: Long): String {
-        return when {
-            size < 1024 -> "$size B"
-            size < 1024 * 1024 -> "${size / 1024} KB"
-            else -> "${size / 1024 / 1024} MB"
-        }
     }
 
     /**

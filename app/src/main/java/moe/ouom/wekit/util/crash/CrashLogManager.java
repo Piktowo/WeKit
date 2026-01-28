@@ -31,7 +31,9 @@ public class CrashLogManager {
     private static final String CRASH_LOG_PREFIX = "crash_";
     private static final String CRASH_LOG_SUFFIX = ".log";
     private static final String PENDING_CRASH_FLAG = "pending_crash.flag";
+    private static final String PENDING_JAVA_CRASH_FLAG = "pending_java_crash.flag";
     private static final int MAX_LOG_FILES = 50; // 最多保留 50 个崩溃日志
+    private static final int MAX_LOG_CONTENT_SIZE = 30 * 1024; // 最大读取30KB
 
     private final File crashLogDir;
 
@@ -62,6 +64,18 @@ public class CrashLogManager {
      */
     @Nullable
     public String saveCrashLog(@NonNull String crashInfo) {
+        return saveCrashLog(crashInfo, false);
+    }
+
+    /**
+     * 保存崩溃日志
+     *
+     * @param crashInfo 崩溃信息
+     * @param isJavaCrash 是否为Java崩溃（true=Java, false=Native）
+     * @return 保存的文件路径，失败返回null
+     */
+    @Nullable
+    public String saveCrashLog(@NonNull String crashInfo, boolean isJavaCrash) {
         try {
             ensureCrashLogDirExists();
 
@@ -78,8 +92,12 @@ public class CrashLogManager {
 
             WeLogger.i("CrashLogManager", "Crash log saved: " + logFile.getAbsolutePath());
 
-            // 设置待处理标记
-            setPendingCrashFlag(logFile.getName());
+            // 根据崩溃类型设置不同的待处理标记
+            if (isJavaCrash) {
+                setPendingJavaCrashFlag(logFile.getName());
+            } else {
+                setPendingCrashFlag(logFile.getName());
+            }
 
             // 清理旧日志
             cleanOldLogs();
@@ -129,8 +147,27 @@ public class CrashLogManager {
                 return null;
             }
 
+            long fileSize = logFile.length();
+
+            // 如果文件太大，只读取前面部分并添加提示
+            if (fileSize > MAX_LOG_CONTENT_SIZE) {
+                WeLogger.w("CrashLogManager", "Crash log file is too large (" + fileSize + " bytes), reading first " + MAX_LOG_CONTENT_SIZE + " bytes");
+
+                java.io.FileInputStream fis = new java.io.FileInputStream(logFile);
+                byte[] buffer = new byte[MAX_LOG_CONTENT_SIZE];
+                int bytesRead = fis.read(buffer);
+                fis.close();
+
+                String content = new String(buffer, 0, bytesRead, StandardCharsets.UTF_8);
+                return content + "\n\n========================================\n" +
+                        "【提示】日志内容过长，此处仅展示部分内容。\n" +
+                        "请点击「导出文件」以保存完整日志。\n" +
+                        "========================================";
+            }
+
+            // 正常大小的文件，完整读取
             java.io.FileInputStream fis = new java.io.FileInputStream(logFile);
-            byte[] buffer = new byte[(int) logFile.length()];
+            byte[] buffer = new byte[(int) fileSize];
             fis.read(buffer);
             fis.close();
 
@@ -289,5 +326,132 @@ public class CrashLogManager {
      */
     public int getCrashLogCount() {
         return getAllCrashLogs().size();
+    }
+
+    // ==================== Java 崩溃专用方法 ====================
+
+    /**
+     * 设置待处理Java崩溃标记
+     *
+     * @param logFileName 崩溃日志文件名
+     */
+    public void setPendingJavaCrashFlag(@NonNull String logFileName) {
+        try {
+            File flagFile = new File(crashLogDir, PENDING_JAVA_CRASH_FLAG);
+            FileWriter writer = new FileWriter(flagFile);
+            writer.write(logFileName);
+            writer.flush();
+            writer.close();
+            WeLogger.d("CrashLogManager", "Pending Java crash flag set: " + logFileName);
+        } catch (IOException e) {
+            WeLogger.e("[CrashLogManager] Failed to set pending Java crash flag", e);
+        }
+    }
+
+    /**
+     * 获取待处理的Java崩溃日志文件名
+     *
+     * @return 崩溃日志文件名，如果没有则返回null
+     */
+    @Nullable
+    public String getPendingJavaCrashLogFileName() {
+        try {
+            File flagFile = new File(crashLogDir, PENDING_JAVA_CRASH_FLAG);
+            if (!flagFile.exists()) {
+                return null;
+            }
+
+            java.io.FileInputStream fis = new java.io.FileInputStream(flagFile);
+            byte[] buffer = new byte[(int) flagFile.length()];
+            fis.read(buffer);
+            fis.close();
+
+            String fileName = new String(buffer, StandardCharsets.UTF_8).trim();
+            WeLogger.d("CrashLogManager", "Pending Java crash log: " + fileName);
+            return fileName;
+        } catch (IOException e) {
+            WeLogger.e("[CrashLogManager] Failed to get pending Java crash flag", e);
+            return null;
+        }
+    }
+
+    /**
+     * 获取待处理的Java崩溃日志文件
+     *
+     * @return 崩溃日志文件，如果没有则返回 null
+     */
+    @Nullable
+    public File getPendingJavaCrashLogFile() {
+        String fileName = getPendingJavaCrashLogFileName();
+        if (fileName == null) {
+            return null;
+        }
+
+        File logFile = new File(crashLogDir, fileName);
+        if (logFile.exists() && logFile.isFile()) {
+            return logFile;
+        }
+
+        // 文件不存在，清除标记
+        clearPendingJavaCrashFlag();
+        return null;
+    }
+
+    /**
+     * 清除待处理Java崩溃标记
+     */
+    public void clearPendingJavaCrashFlag() {
+        File flagFile = new File(crashLogDir, PENDING_JAVA_CRASH_FLAG);
+        if (flagFile.exists() && flagFile.delete()) {
+            WeLogger.d("CrashLogManager", "Pending Java crash flag cleared");
+        }
+    }
+
+    /**
+     * 检查是否有待处理的Java崩溃
+     *
+     * @return 是否有待处理的Java崩溃
+     */
+    public boolean hasPendingJavaCrash() {
+        return getPendingJavaCrashLogFile() != null;
+    }
+
+    // ==================== Native 崩溃专用方法 ====================
+
+    /**
+     * 获取待处理的Native崩溃日志文件名
+     * Native崩溃使用 pending_crash.flag
+     *
+     * @return 崩溃日志文件名，如果没有则返回null
+     */
+    @Nullable
+    public String getPendingNativeCrashLogFileName() {
+        return getPendingCrashLogFileName();
+    }
+
+    /**
+     * 获取待处理的Native崩溃日志文件
+     *
+     * @return 崩溃日志文件，如果没有则返回 null
+     */
+    @Nullable
+    public File getPendingNativeCrashLogFile() {
+        return getPendingCrashLogFile();
+    }
+
+    /**
+     * 清除待处理Native崩溃标记
+     */
+    public void clearPendingNativeCrashFlag() {
+        clearPendingCrashFlag();
+    }
+
+    /**
+     * 检查是否有待处理的Native崩溃
+     *
+     * @return 是否有待处理的Native崩溃
+     */
+    public boolean hasPendingNativeCrash() {
+        return hasPendingCrash();
     }
 }

@@ -3,7 +3,8 @@ cmake_minimum_required(VERSION 3.18.1)
 project("wekit")
 
 add_library(wekit SHARED
-        wekit_lib.cpp)
+        wekit_lib.cpp
+        native_crash_handler.cpp)
 
 find_library(log-lib log)
 

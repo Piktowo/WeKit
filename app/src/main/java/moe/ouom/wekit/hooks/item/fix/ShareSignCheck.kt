@@ -7,7 +7,7 @@ import moe.ouom.wekit.dexkit.intf.IDexFind
 import moe.ouom.wekit.hooks.core.annotation.HookItem
 import org.luckypray.dexkit.DexKitBridge
 
-@HookItem(path = "优化与修复/分享签名校验", desc = "绕过第三方应用分享到微信的签名校验")
+@HookItem(path = "优化与修复/绕过分享签名校验", desc = "绕过第三方应用分享到微信的签名校验")
 class ShareSignCheck : BaseSwitchFunctionHookItem(), IDexFind {
     private val methodSignCheck by dexMethod()
 

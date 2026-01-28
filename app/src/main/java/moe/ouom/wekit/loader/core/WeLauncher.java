@@ -18,6 +18,7 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedHelpers;
 import moe.ouom.wekit.config.RuntimeConfig;
 import moe.ouom.wekit.constants.PackageConstants;
+import moe.ouom.wekit.loader.core.hooks.ActivityProxyHooks;
 import moe.ouom.wekit.security.SignatureVerifier;
 import moe.ouom.wekit.util.Initiator;
 import moe.ouom.wekit.util.common.ModuleRes;
@@ -57,6 +58,16 @@ public class WeLauncher {
         if (!SignatureVerifier.isSignatureValid()) {
             WeLogger.e("WeLauncher", "Signature verification failed. Aborting.");
             return;
+        }
+
+        try {
+            Context appContext = context.getApplicationContext();
+            if (appContext == null) appContext = context;
+
+            ActivityProxyHooks.initForStubActivity(appContext);
+            WeLogger.i("WeLauncher", "Activity Proxy Hooks installed successfully.");
+        } catch (Throwable e) {
+            WeLogger.e("WeLauncher: Failed to install Activity Proxy Hooks", e);
         }
 
         if (currentProcessType == SyncUtils.PROC_MAIN) {

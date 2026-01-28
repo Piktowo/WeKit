@@ -1,230 +1,230 @@
-package moe.ouom.wekit.util.common;
+package moe.ouom.wekit.util.common
 
-import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.content.Context;
-import android.content.ContextWrapper;
-import android.content.Intent;
-import android.net.Uri;
-import android.os.Bundle;
-import android.os.Handler;
-import android.view.View;
-import android.view.ViewGroup;
+import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
+import android.net.Uri
+import android.os.Handler
+import android.view.View
+import android.view.ViewGroup
+import de.robv.android.xposed.XposedBridge
+import moe.ouom.wekit.util.log.WeLogger
+import org.json.JSONArray
+import org.json.JSONObject
+import java.lang.reflect.Method
+import java.net.URL
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Objects
+import androidx.core.view.size
+import androidx.core.net.toUri
 
-import org.json.JSONArray;
-import org.json.JSONObject;
+object Utils {
+    private val sHandler: Handler? = null
 
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
-
-import de.robv.android.xposed.XposedBridge;
-import moe.ouom.wekit.util.log.WeLogger;
-
-public class Utils {
-    private static Handler sHandler;
-
-    public static List<View> getAllViews(Activity act) {
-        return getAllChildViews(act.getWindow().getDecorView());
+    fun getAllViews(act: Activity): MutableList<View> {
+        return getAllChildViews(act.window.decorView)
     }
 
-    private static List<View> getAllChildViews(View view) {
-        List<View> allChildren = new ArrayList<>();
-        if (view instanceof ViewGroup vp) {
-            for (int i = 0; i < vp.getChildCount(); i++) {
-                View viewChild = vp.getChildAt(i);
-                allChildren.add(viewChild);
-                allChildren.addAll(getAllChildViews(viewChild));
+    private fun getAllChildViews(view: View?): MutableList<View> {
+        val allChildren: MutableList<View> = ArrayList<View>()
+        if (view is ViewGroup) {
+            for (i in 0..<view.size) {
+                val viewChild = view.getChildAt(i)
+                allChildren.add(viewChild!!)
+                allChildren.addAll(getAllChildViews(viewChild))
             }
         }
-        return allChildren;
+        return allChildren
     }
 
-    public static View getViewByDesc(Activity act, String desc, int limit) throws InterruptedException {
-        for (int x = 0; x < limit; x++){
-            for (View view : getAllViews(act)) {
+    @Throws(InterruptedException::class)
+    fun getViewByDesc(act: Activity, desc: String?, limit: Int): View? {
+        for (x in 0..<limit) {
+            for (view in getAllViews(act)) {
                 try {
-                    if (view.getContentDescription().equals(desc)) {
-                        return view;
+                    if (view.contentDescription == desc) {
+                        return view
                     }
-                } catch (Exception e) {
-                    XposedBridge.log(e);
+                } catch (e: Exception) {
+                    XposedBridge.log(e)
                 }
-
             }
-            Thread.sleep(200);
+            Thread.sleep(200)
         }
 
 
 
-        return null;
+        return null
     }
 
-    public static View getViewByDesc(Activity act, String desc) {
+    fun getViewByDesc(act: Activity, desc: String?): View? {
         try {
-            for (View view : getAllViews(act)) {
+            for (view in getAllViews(act)) {
                 try {
-                    if (view.getContentDescription().equals(desc)) {
-                        return view;
+                    if (view.contentDescription == desc) {
+                        return view
                     }
-                } catch (Exception e) {
-                    XposedBridge.log(e);
+                } catch (e: Exception) {
+                    XposedBridge.log(e)
                 }
-
             }
-        } catch (Exception e) {
-            WeLogger.e(e);
+        } catch (e: Exception) {
+            WeLogger.e(e)
         }
 
 
-        return null;
+        return null
     }
 
-    public static void printStackTrace() {
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        WeLogger.e("---------------------- [Stack Trace] ----------------------");
-        for (StackTraceElement element : stackTrace) {
-            WeLogger.d("    at " + element.toString());
+    fun printStackTrace() {
+        val stackTrace = Thread.currentThread().getStackTrace()
+        WeLogger.e("---------------------- [Stack Trace] ----------------------")
+        for (element in stackTrace) {
+            WeLogger.d("    at $element")
         }
-        WeLogger.e("^---------------------- over ----------------------^");
+        WeLogger.e("^---------------------- over ----------------------^")
     }
 
 
-    public static void printIntentExtras(String TAG, Intent intent) {
+    fun printIntentExtras(TAG: String?, intent: Intent?) {
         if (intent == null) {
-            WeLogger.e("Intent is null or has no extras.");
-            return;
+            WeLogger.e("Intent is null or has no extras.")
+            return
         }
 
-        WeLogger.i("*-------------------- " + TAG + " --------------------*");
-        Bundle extras = intent.getExtras();
+        WeLogger.i("*-------------------- $TAG --------------------*")
+        val extras = intent.getExtras()
         if (extras != null) {
-            for (String key : extras.keySet()) {
-                Object value = extras.get(key);
-                WeLogger.d(key + " = " + Objects.requireNonNull(value) + "(" + value.getClass() + ")");
+            for (key in extras.keySet()) {
+                val value = extras.get(key)
+                WeLogger.d(key + " = " + Objects.requireNonNull<Any?>(value) + "(" + value!!.javaClass + ")")
             }
         } else {
-            WeLogger.w("No extras found in the Intent.");
+            WeLogger.w("No extras found in the Intent.")
         }
 
-        WeLogger.i("^-------------------- " + "OVER~" + " --------------------^");
+        WeLogger.i("^-------------------- " + "OVER~" + " --------------------^")
     }
 
-    public static Activity getActivityFromView(View view) {
-        Context context = view.getContext();
-        while (context instanceof ContextWrapper) {
-            if (context instanceof Activity) {
-                return (Activity) context;
+    fun getActivityFromView(view: View): Activity? {
+        var context = view.context
+        while (context is ContextWrapper) {
+            if (context is Activity) {
+                return context
             }
-            context = ((ContextWrapper) context).getBaseContext();
+            context = context.baseContext
         }
-        return null;
+        return null
     }
 
 
-    public static Activity getActivityFromContext(Context context) {
-        while (context instanceof ContextWrapper) {
-            if (context instanceof Activity) {
-                return (Activity) context;
+    fun getActivityFromContext(context: Context?): Activity? {
+        var context = context
+        while (context is ContextWrapper) {
+            if (context is Activity) {
+                return context
             }
-            context = ((ContextWrapper) context).getBaseContext();
+            context = context.baseContext
         }
-        return null;
+        return null
     }
 
-    public static void jumpUrl(Context context, String webUrl) {
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setData(Uri.parse(webUrl));
-        context.startActivity(intent);
+    fun jumpUrl(context: Context, webUrl: String?) {
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.setData(webUrl?.toUri())
+        context.startActivity(intent)
     }
 
-    public static String convertTimestampToDate(long timestamp) {
-        Date date = new Date(timestamp);
-        @SuppressLint("SimpleDateFormat") SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        return sdf.format(date);
+    fun convertTimestampToDate(timestamp: Long): String {
+        val date = Date(timestamp)
+        @SuppressLint("SimpleDateFormat") val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+        return sdf.format(date)
     }
 
-    public static Method findMethodByName(Class<?> clazz, String methodName) {
-        for (Method method : clazz.getDeclaredMethods()) {
-            if (method.getName().equals(methodName)) {
-                return method;
+    fun findMethodByName(clazz: Class<*>, methodName: String?): Method {
+        for (method in clazz.getDeclaredMethods()) {
+            if (method.name == methodName) {
+                return method
             }
         }
-        throw new IllegalArgumentException("Method not found: " + methodName);
+        throw IllegalArgumentException("Method not found: $methodName")
     }
 
-    public static String timeToFormat(long time) {
-        @SuppressLint("SimpleDateFormat") SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        return sdf.format(time);
+    fun timeToFormat(time: Long): String? {
+        @SuppressLint("SimpleDateFormat") val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+        return sdf.format(time)
     }
 
-    public static String[] parseURLComponents(String url) {
-        String host = "";
-        String type = "";
+    fun parseURLComponents(url: String?): Array<String?> {
+        var host: String? = ""
+        var type: String? = ""
         try {
-            URL Url = new URL(url);
-            host = Url.getHost();
-            type = Url.toURI().getScheme();
-        } catch (Exception e) {
-            XposedBridge.log(e);
+            val Url = URL(url)
+            host = Url.getHost()
+            type = Url.toURI().getScheme()
+        } catch (e: Exception) {
+            XposedBridge.log(e)
         }
-        return new String[] {host, type};
+        return arrayOf<String?>(host, type)
     }
 
-    public static String bytesToHex(byte[] bytes) {
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : bytes) {
-            String hex = Integer.toHexString(0xFF & b);
-            if (hex.length() == 1) {
-                hexString.append('0');
+    fun bytesToHex(bytes: ByteArray): String {
+        val hexString = StringBuilder()
+        for (b in bytes) {
+            val hex = Integer.toHexString(0xFF and b.toInt())
+            if (hex.length == 1) {
+                hexString.append('0')
             }
-            hexString.append(hex);
+            hexString.append(hex)
         }
-        return hexString.toString();
+        return hexString.toString()
     }
 
-    public static Object deepGet(Object obj, String path, Object def) {
+    fun deepGet(obj: Any?, path: String, def: Any?): Any? {
         try {
-            String[] keys = path.split("\\.");
+            val keys = path.split("\\.".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
 
-            Object current = obj;
+            var current = obj
 
-            for (String key : keys) {
+            for (key in keys) {
+                if (current == null) return def
 
-                if (current == null) return def;
-
-                if (current instanceof JSONObject json) {
-
-                    if (json.has(key)) {
-                        current = json.opt(key);
-                        continue;
+                if (current is JSONObject) {
+                    if (current.has(key)) {
+                        current = current.opt(key)
+                        continue
                     }
 
-                    return def;
-                }
+                    return def
+                } else if (current is JSONArray) {
+                    if (!key.matches("\\d+".toRegex())) return def
 
-                else if (current instanceof JSONArray arr) {
+                    val index = key.toInt()
+                    if (index < 0 || index >= current.length()) return def
 
-                    if (!key.matches("\\d+")) return def;
-
-                    int index = Integer.parseInt(key);
-                    if (index < 0 || index >= arr.length()) return def;
-
-                    current = arr.opt(index);
-                }
-
-                else {
-                    return def;
+                    current = current.opt(index)
+                } else {
+                    return def
                 }
             }
 
-            return current != null ? current : def;
-        } catch (Exception e) {
-            return def;
+            return current ?: def
+        } catch (e: Exception) {
+            return def
+        }
+    }
+
+    /**
+     * 格式化文件大小
+     */
+    fun formatFileSize(size: Long): String {
+        return when {
+            size < 1024 -> "$size B"
+            size < 1024 * 1024 -> "${size / 1024} KB"
+            else -> "${size / 1024 / 1024} MB"
         }
     }
 }

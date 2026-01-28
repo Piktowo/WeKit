@@ -46,6 +46,28 @@ class HookItemScanner(
 
         if (symbols.isEmpty()) return emptyList()
 
+        // 对 symbols 进行排序
+        // 1. BaseSwitchFunctionHookItem 优先级高于 BaseClickableFunctionHookItem
+        // 2. 同类型内按照 path 中的最后一部分（itemname）的首字母排序
+        val sortedSymbols = symbols.sortedWith(compareBy(
+            // 第一排序：按照类型排序，BaseSwitchFunctionHookItem 优先
+            { symbol ->
+                val superTypes = symbol.superTypes.map { it.resolve().declaration.qualifiedName?.asString() }
+                when {
+                    superTypes.contains("moe.ouom.wekit.core.model.BaseSwitchFunctionHookItem") -> 0
+                    superTypes.contains("moe.ouom.wekit.core.model.BaseClickableFunctionHookItem") -> 1
+                    else -> 2
+                }
+            },
+            // 第二排序：按照 path 中的最后一部分的首字母排序
+            { symbol ->
+                val hookItem = symbol.getAnnotationsByType(HookItem::class).firstOrNull()
+                val path = hookItem?.path ?: ""
+                val itemName = path.substringAfterLast("/", path)
+                itemName
+            }
+        ))
+
         // 准备返回类型和基类
         val returnType = ClassName("kotlin.collections", "List")
         val genericsType = ClassName("moe.ouom.wekit.core.model", "BaseHookItem")
@@ -60,8 +82,8 @@ class HookItemScanner(
             CodeBlock.Builder().apply {
                 addStatement("val list = mutableListOf<BaseHookItem>()")
 
-                // 遍历所有被 @HookItem 注解的类
-                for (symbol in symbols) {
+                // 遍历所有被 @HookItem 注解的类（已排序）
+                for (symbol in sortedSymbols) {
                     val typeName = symbol.toClassName()
                     val hookItem = symbol.getAnnotationsByType(HookItem::class).first()
                     val itemName = hookItem.path

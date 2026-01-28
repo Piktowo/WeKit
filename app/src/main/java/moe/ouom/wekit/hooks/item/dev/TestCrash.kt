@@ -1,5 +1,6 @@
 package moe.ouom.wekit.hooks.item.dev
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
@@ -8,6 +9,8 @@ import com.afollestad.materialdialogs.list.listItems
 import moe.ouom.wekit.core.model.BaseClickableFunctionHookItem
 import moe.ouom.wekit.hooks.core.annotation.HookItem
 import moe.ouom.wekit.ui.CommonContextWrapper
+import moe.ouom.wekit.util.common.Toasts.showToast
+import moe.ouom.wekit.util.crash.NativeCrashHandler
 import moe.ouom.wekit.util.log.WeLogger
 
 /**
@@ -23,8 +26,42 @@ import moe.ouom.wekit.util.log.WeLogger
 )
 class TestCrash : BaseClickableFunctionHookItem() {
 
+    private var appContext: Context? = null
+    private var nativeCrashHandler: NativeCrashHandler? = null
+
     override fun entry(classLoader: ClassLoader) {
-        WeLogger.i("TestCrash", "Test crash feature initialized")
+        WeLogger.i("TestCrash", "=== TestCrash entry() called ===")
+        try {
+            // 获取Application Context
+            val activityThreadClass = classLoader.loadClass("android.app.ActivityThread")
+            val currentApplicationMethod = activityThreadClass.getMethod("currentApplication")
+            appContext = currentApplicationMethod.invoke(null) as? Context
+
+            WeLogger.i("TestCrash", "Application context obtained: ${appContext != null}")
+            WeLogger.i("TestCrash", "Context class: ${appContext?.javaClass?.name}")
+
+            if (appContext != null) {
+                // 初始化 Native 崩溃处理器（用于测试）
+                WeLogger.i("TestCrash", "Creating NativeCrashHandler...")
+                nativeCrashHandler = NativeCrashHandler(appContext!!)
+                WeLogger.i("TestCrash", "NativeCrashHandler created: ${nativeCrashHandler != null}")
+
+                // 安装 Native 崩溃拦截器（确保测试时能够拦截崩溃）
+                WeLogger.i("TestCrash", "Installing native crash handler...")
+                val installed = nativeCrashHandler?.install() ?: false
+                if (installed) {
+                    WeLogger.i("TestCrash", "✓ Native crash handler installed successfully for testing")
+                } else {
+                    WeLogger.e("TestCrash", "✗ Failed to install native crash handler for testing")
+                }
+            } else {
+                WeLogger.e("TestCrash", "✗ Application context is null, cannot initialize handler")
+            }
+
+            WeLogger.i("TestCrash", "=== Test crash feature initialized ===")
+        } catch (e: Throwable) {
+            WeLogger.e("[TestCrash] Failed to initialize", e)
+        }
     }
 
     override fun onClick(context: Context?) {
@@ -33,13 +70,44 @@ class TestCrash : BaseClickableFunctionHookItem() {
             return
         }
 
-        showCrashTypeDialog(context)
+        showCrashCategoryDialog(context)
     }
 
     /**
-     * 显示崩溃类型选择对话框
+     * 显示崩溃类别选择对话框
      */
-    private fun showCrashTypeDialog(context: Context) {
+    private fun showCrashCategoryDialog(context: Context) {
+        Handler(Looper.getMainLooper()).post {
+            try {
+                val categories = listOf(
+                    "Java 层崩溃",
+                    "Native 层崩溃"
+                )
+
+                // 使用 CommonContextWrapper 包装 Context
+                val wrappedContext = CommonContextWrapper.createAppCompatContext(context)
+
+                MaterialDialog(wrappedContext)
+                    .title(text = "选择崩溃类别")
+                    .listItems(items = categories) { dialog, index, _ ->
+                        dialog.dismiss()
+                        when (index) {
+                            0 -> showJavaCrashTypeDialog(context)
+                            1 -> showNativeCrashTypeDialog(context)
+                        }
+                    }
+                    .negativeButton(text = "取消")
+                    .show()
+            } catch (e: Throwable) {
+                WeLogger.e("[TestCrash] Failed to show crash category dialog", e)
+            }
+        }
+    }
+
+    /**
+     * 显示 Java 崩溃类型选择对话框
+     */
+    private fun showJavaCrashTypeDialog(context: Context) {
         Handler(Looper.getMainLooper()).post {
             try {
                 val crashTypes = listOf(
@@ -54,15 +122,50 @@ class TestCrash : BaseClickableFunctionHookItem() {
                 val wrappedContext = CommonContextWrapper.createAppCompatContext(context)
 
                 MaterialDialog(wrappedContext)
-                    .title(text = "选择崩溃类型")
+                    .title(text = "选择 Java 崩溃类型")
                     .listItems(items = crashTypes) { dialog, index, _ ->
                         dialog.dismiss()
-                        confirmTriggerCrash(context, index)
+                        confirmTriggerCrash(context, "Java", index)
                     }
-                    .negativeButton(text = "取消")
+                    .negativeButton(text = "返回") {
+                        showCrashCategoryDialog(context)
+                    }
                     .show()
             } catch (e: Throwable) {
-                WeLogger.e("[TestCrash] Failed to show crash type dialog", e)
+                WeLogger.e("[TestCrash] Failed to show Java crash type dialog", e)
+            }
+        }
+    }
+
+    /**
+     * 显示 Native 崩溃类型选择对话框
+     */
+    private fun showNativeCrashTypeDialog(context: Context) {
+        Handler(Looper.getMainLooper()).post {
+            try {
+                val crashTypes = listOf(
+                    "段错误 (SIGSEGV - 空指针访问)",
+                    "异常终止 (SIGABRT - abort)",
+                    "浮点异常 (SIGFPE - 除零错误)",
+                    "非法指令 (SIGILL)",
+                    "总线错误 (SIGBUS - 未对齐访问)"
+                )
+
+                // 使用 CommonContextWrapper 包装 Context
+                val wrappedContext = CommonContextWrapper.createAppCompatContext(context)
+
+                MaterialDialog(wrappedContext)
+                    .title(text = "选择 Native 崩溃类型")
+                    .listItems(items = crashTypes) { dialog, index, _ ->
+                        dialog.dismiss()
+                        confirmTriggerCrash(context, "Native", index)
+                    }
+                    .negativeButton(text = "返回") {
+                        showCrashCategoryDialog(context)
+                    }
+                    .show()
+            } catch (e: Throwable) {
+                WeLogger.e("[TestCrash] Failed to show Native crash type dialog", e)
             }
         }
     }
@@ -70,7 +173,7 @@ class TestCrash : BaseClickableFunctionHookItem() {
     /**
      * 确认触发崩溃
      */
-    private fun confirmTriggerCrash(context: Context, crashType: Int) {
+    private fun confirmTriggerCrash(context: Context, category: String, crashType: Int) {
         Handler(Looper.getMainLooper()).post {
             try {
                 // 使用 CommonContextWrapper 包装 Context
@@ -78,10 +181,13 @@ class TestCrash : BaseClickableFunctionHookItem() {
 
                 MaterialDialog(wrappedContext)
                     .title(text = "确认触发崩溃")
-                    .message(text = "确定要触发测试崩溃吗?\n\n这可能会导致微信数据丢失")
+                    .message(text = "确定要触发 $category 测试崩溃吗?\n\n这可能会导致微信数据丢失")
                     .positiveButton(text = "确定") { dialog ->
                         dialog.dismiss()
-                        triggerCrash(crashType)
+                        when (category) {
+                            "Java" -> triggerJavaCrash(crashType)
+                            "Native" -> triggerNativeCrash(crashType)
+                        }
                     }
                     .negativeButton(text = "取消")
                     .show()
@@ -92,10 +198,10 @@ class TestCrash : BaseClickableFunctionHookItem() {
     }
 
     /**
-     * 触发崩溃
+     * 触发 Java 崩溃
      */
-    private fun triggerCrash(crashType: Int) {
-        WeLogger.w("TestCrash", "Triggering test crash, type: $crashType")
+    private fun triggerJavaCrash(crashType: Int) {
+        WeLogger.w("TestCrash", "Triggering Java test crash, type: $crashType")
 
         // 延迟触发,确保对话框已关闭
         Handler(Looper.getMainLooper()).postDelayed({
@@ -106,6 +212,70 @@ class TestCrash : BaseClickableFunctionHookItem() {
                 3 -> triggerArithmeticException()
                 4 -> triggerStackOverflowError()
                 else -> triggerNullPointerException()
+            }
+        }, 500)
+    }
+
+    /**
+     * 触发 Native 崩溃
+     */
+    @SuppressLint("PrivateApi")
+    private fun triggerNativeCrash(crashType: Int) {
+        WeLogger.w("TestCrash", "Triggering Native test crash, type: $crashType")
+
+        // 检查 Native 崩溃处理器是否已安装
+        if (nativeCrashHandler == null) {
+            WeLogger.w("TestCrash", "Native crash handler is null, attempting to initialize...")
+
+            // 尝试重新初始化
+            if (appContext == null) {
+                try {
+                    // 重新获取 Application Context
+                    val activityThreadClass = Class.forName("android.app.ActivityThread")
+                    val currentApplicationMethod = activityThreadClass.getMethod("currentApplication")
+                    appContext = currentApplicationMethod.invoke(null) as? Context
+                    WeLogger.i("TestCrash", "Application context obtained: ${appContext != null}")
+                } catch (e: Throwable) {
+                    WeLogger.e("[TestCrash] Failed to get application context", e)
+                }
+            }
+
+            if (appContext != null) {
+                try {
+                    nativeCrashHandler = NativeCrashHandler(appContext!!)
+                    WeLogger.i("TestCrash", "Native crash handler created")
+                } catch (e: Throwable) {
+                    WeLogger.e("[TestCrash] Failed to create native crash handler", e)
+                    showToast(appContext, "无法创建 Native 崩溃处理器: ${e.message}")
+                    return
+                }
+            } else {
+                WeLogger.e("TestCrash", "Application context is null, cannot create handler")
+                showToast(appContext, "无法获取应用上下文")
+                return
+            }
+        }
+
+        if (!nativeCrashHandler!!.isInstalled) {
+            WeLogger.w("TestCrash", "Native crash handler not installed, attempting to install...")
+            val installed = nativeCrashHandler!!.install()
+            if (!installed) {
+                WeLogger.e("TestCrash", "Failed to install native crash handler")
+                showToast(appContext, "Native 崩溃拦截器安装失败")
+                return
+            }
+            WeLogger.i("TestCrash", "Native crash handler installed successfully")
+        }
+
+        // 延迟触发,确保对话框已关闭
+        Handler(Looper.getMainLooper()).postDelayed({
+            try {
+                WeLogger.i("TestCrash", "About to trigger native crash type: $crashType")
+                nativeCrashHandler?.triggerTestCrash(crashType)
+                WeLogger.e("TestCrash", "Native crash should have occurred but didn't!")
+            } catch (e: Throwable) {
+                WeLogger.e("[TestCrash] Exception while triggering Native crash", e)
+                showToast(appContext, "触发 Native 崩溃时发生异常: ${e.message}")
             }
         }, 500)
     }

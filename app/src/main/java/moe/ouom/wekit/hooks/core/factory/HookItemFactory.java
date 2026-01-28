@@ -3,8 +3,7 @@ package moe.ouom.wekit.hooks.core.factory;
 import androidx.annotation.NonNull;
 
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,7 +17,8 @@ import moe.ouom.wekit.hooks.gen.HookItemEntryList;
 public class HookItemFactory implements IHookFactoryDelegate {
     public static final HookItemFactory INSTANCE = new HookItemFactory();
 
-    private static final Map<Class<? extends BaseHookItem>, BaseHookItem> ITEM_MAP = new HashMap<>();
+    // 使用 LinkedHashMap 保持 KSP 生成的顺序
+    private static final Map<Class<? extends BaseHookItem>, BaseHookItem> ITEM_MAP = new LinkedHashMap<>();
 
     static {
         List<BaseHookItem> items = HookItemEntryList.getAllHookItems();
@@ -67,7 +67,6 @@ public class HookItemFactory implements IHookFactoryDelegate {
                 result.add((BaseSwitchFunctionHookItem) item);
             }
         }
-        result.sort(Comparator.comparing(BaseHookItem::getSimpleName));
         return result;
     }
 
@@ -78,7 +77,6 @@ public class HookItemFactory implements IHookFactoryDelegate {
                 result.add((BaseClickableFunctionHookItem) item);
             }
         }
-        result.sort(Comparator.comparing(BaseHookItem::getSimpleName));
         return result;
     }
 
