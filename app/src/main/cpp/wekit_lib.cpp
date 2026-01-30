@@ -123,13 +123,13 @@ INTERNAL_FUNC static uint32_t get_expected_integrity_hash() {
     return reconstructed;
 }
 
-INTERNAL_FUNC INTERNAL_FUNC static void process_string_data(const unsigned char *data, unsigned char key, char *output) {
+INTERNAL_FUNC static void process_string_data(const unsigned char *data, unsigned char key, char *output) {
     for (int i = 0; i < 16; i++) {
         output[i] = (data[i] ^ key);
     }
 }
 
-INTERNAL_FUNC INTERNAL_FUNC static bool load_config_segment(int segment, char* buffer) {
+INTERNAL_FUNC static bool load_config_segment(int segment, char* buffer) {
     switch(segment) {
         case 0:
             process_string_data(ENC_PART1, KEY1, buffer);
@@ -149,7 +149,7 @@ INTERNAL_FUNC INTERNAL_FUNC static bool load_config_segment(int segment, char* b
 }
 
 // 解密并组装预埋的 Hash 字符串
-INTERNAL_FUNC INTERNAL_FUNC static std::string assemble_verification_data() {
+INTERNAL_FUNC static std::string assemble_verification_data() {
     char parts[4][17]; // 16 bytes + null terminator
     for (int i = 0; i < 4; i++) {
         memset(parts[i], 0, 17);
