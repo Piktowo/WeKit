@@ -136,6 +136,7 @@ public class CrashLogManager {
 
     /**
      * 读取崩溃日志内容
+     * （用于UI显示，会截断过长内容）
      *
      * @param logFile 日志文件
      * @return 日志内容，失败返回null
@@ -174,6 +175,35 @@ public class CrashLogManager {
             return new String(buffer, StandardCharsets.UTF_8);
         } catch (IOException e) {
             WeLogger.e("[CrashLogManager] Failed to read crash log", e);
+            return null;
+        }
+    }
+
+    /**
+     * 读取完整的崩溃日志内容
+     *
+     * @param logFile 日志文件
+     * @return 完整的日志内容，失败返回null
+     */
+    @Nullable
+    public String readFullCrashLog(@NonNull File logFile) {
+        try {
+            if (!logFile.exists() || !logFile.isFile()) {
+                return null;
+            }
+
+            long fileSize = logFile.length();
+            WeLogger.d("CrashLogManager", "Reading full crash log, size: " + fileSize + " bytes");
+
+            // 读取完整文件内容，不进行截断
+            java.io.FileInputStream fis = new java.io.FileInputStream(logFile);
+            byte[] buffer = new byte[(int) fileSize];
+            fis.read(buffer);
+            fis.close();
+
+            return new String(buffer, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            WeLogger.e("[CrashLogManager] Failed to read full crash log", e);
             return null;
         }
     }

@@ -248,7 +248,9 @@ class CrashInterceptor : BaseSwitchFunctionHookItem() {
                             messageTextView.setTextIsSelectable(true)
                         }
                         .positiveButton(text = "复制完整日志") { dialog ->
-                            copyToClipboard(activity, crashInfo)
+                            // 读取完整日志用于复制
+                            val fullCrashInfo = manager.readFullCrashLog(crashLogFile) ?: crashInfo
+                            copyToClipboard(activity, fullCrashInfo)
                             dialog.dismiss()
                             manager.clearPendingJavaCrashFlag()
                         }
@@ -306,7 +308,8 @@ class CrashInterceptor : BaseSwitchFunctionHookItem() {
         Thread {
             try {
                 val manager = crashLogManager ?: return@Thread
-                val crashInfo = manager.readCrashLog(sourceFile) ?: run {
+                // 使用 readFullCrashLog 读取完整日志，不截断
+                val crashInfo = manager.readFullCrashLog(sourceFile) ?: run {
                     Handler(Looper.getMainLooper()).post { showToast("读取源文件失败") }
                     return@Thread
                 }
