@@ -19,7 +19,7 @@ import java.lang.reflect.Modifier
 /**
  * 微信消息发送 API
  * 基于: WeChat 8.0.68
- * 适配版本：WeChat <待补充> ~ 8.0.68
+ * 适配版本：WeChat 8.0.67 ~ 8.0.68
  */
 @SuppressLint("DiscouragedApi")
 @HookItem(path = "API/消息发送服务", desc = "提供文本、图片、文件、语音消息发送能力")
@@ -60,7 +60,7 @@ class WeMessageApi : ApiHookItem(), IDexFind {
 
     // 查找 Service 接口 (sc0.e)
     private val dexClassVoiceServiceInterface by dexClass()
-    // 关键补回：Service 实现类 (用于单例 fallback)
+    // Service 实现类
     private val dexClassVoiceServiceImpl by dexClass()
     private val dexMethodVoiceSend by dexMethod()
 
