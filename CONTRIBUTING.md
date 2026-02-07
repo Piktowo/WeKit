@@ -2956,7 +2956,7 @@ close #1
 - [ ] 我已在本地测试这些更改 / I have tested these changes locally
 - [ ] 我已更新相关文档或注释（如适用） / I have updated relevant documentation or comments (if applicable)
 - [ ] **我确认此更改不会破坏任何原有功能** / I confirm this change does not break any existing features
-- [ ] **我已使用进行版本适配（如适用）** / I have used MMVersion for version compatibility (if applicable)
+- [ ] **我已进行多版本适配（如适用）** / I have used MMVersion for version compatibility (if applicable)
 - [ ] **我已在多个微信版本上测试此更改（如适用）** / I have tested this change on multiple WeChat versions (if applicable)  
 
 ##### 其他信息 / Additional Information
