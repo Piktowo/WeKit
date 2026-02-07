@@ -72,7 +72,7 @@ class WePkgDispatcher : ApiHookItem(), IDexFind {
                                 }
                                 // 处理标准混淆的 ICommReqResp 实现
                                 else {
-                                    var respWrapper: Any? = null
+                                    var respWrapper: Any?
                                     try {
                                         respWrapper = XposedHelpers.getObjectField(respV0, "b")
                                     } catch (_: NoSuchFieldError) {
@@ -82,7 +82,7 @@ class WePkgDispatcher : ApiHookItem(), IDexFind {
                                     if (respWrapper != null) {
                                         val respPbObj = try {
                                             XposedHelpers.getObjectField(respWrapper, "a")
-                                        } catch (e: NoSuchFieldError) {
+                                        } catch (_: NoSuchFieldError) {
                                             null
                                         }
 

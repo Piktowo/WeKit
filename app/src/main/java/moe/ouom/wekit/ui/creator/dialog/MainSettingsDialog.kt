@@ -47,7 +47,7 @@ class MainSettingsDialog(context: Context) : BaseRikkaDialog(context, "WeKit") {
         addSwitchPreference(
             key = Constants.PrekVerboseLog,
             title = "详细日志",
-            summary = "输出高频日志",
+            summary = "输出高频日志 (这可能会暴露你的隐私信息）",
             iconName = "ic_debug",
             useFullKey = true
         )

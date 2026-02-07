@@ -71,8 +71,6 @@ class WeDatabaseListener : ApiHookItem() {
                             if (dbVerboseLog) {
                                 // 输出完整的 ContentValues
                                 WeLogger.d("WeDatabaseApi: 分发数据库插入事件 table=$table 给 ${listeners.size} 个监听器, values=$values")
-                            } else {
-                                WeLogger.d("WeDatabaseApi: 分发数据库插入事件 table=$table 给 ${listeners.size} 个监听器")
                             }
                         }
                         listeners.forEach { it.onInsert(table, values) }

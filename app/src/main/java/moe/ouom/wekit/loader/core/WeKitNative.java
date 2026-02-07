@@ -36,7 +36,6 @@ public class WeKitNative {
         }
 
         try {
-            // 检查 doInit 的布尔返回值
             boolean success = doInit(flag);
             if (!success) {
                 WeLogger.e(TAG, "Native init failed (Check Logs for details)");

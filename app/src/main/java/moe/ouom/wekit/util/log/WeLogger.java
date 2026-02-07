@@ -14,6 +14,9 @@ public class WeLogger {
 
     private static final String TAG = BuildConfig.TAG;
 
+    private static final int CHUNK_SIZE = 4000;
+    private static final int MAX_CHUNKS = 200;
+
     // ========== String ==========
     public static void e(@NonNull String msg) {
         android.util.Log.e(TAG, msg);
@@ -369,5 +372,42 @@ public class WeLogger {
     @NonNull
     public static String getStackTraceString(@NonNull Throwable th) {
         return android.util.Log.getStackTraceString(th);
+    }
+
+    // ========== 分段打印 ==========
+
+    public static void logChunked(int priority, @NonNull String tag, @NonNull String msg) {
+        if (msg.length() <= CHUNK_SIZE) {
+            Log.println(priority, tag, msg);
+            return;
+        }
+
+        int len = msg.length();
+        int chunkCount = (len + CHUNK_SIZE - 1) / CHUNK_SIZE;
+        if (chunkCount > MAX_CHUNKS) {
+            String head = msg.substring(0, Math.min(len, CHUNK_SIZE));
+            Log.println(priority, BuildConfig.TAG,"[" +  tag + "]" + "[chunked] too long (" + len + " chars, " + chunkCount
+                    + " chunks). head:\n" + head);
+            Log.println(priority, BuildConfig.TAG,"[" +  tag + "]" + "[chunked] truncated. Consider writing to file for full dump.");
+            return;
+        }
+
+        for (int i = 0, part = 1; i < len; i += CHUNK_SIZE, part++) {
+            int end = Math.min(i + CHUNK_SIZE, len);
+            String chunk = msg.substring(i, end);
+            Log.println(priority, BuildConfig.TAG,"[" +  tag + "]" + "[part " + part + "/" + chunkCount + "] " + chunk);
+        }
+    }
+
+    public static void logChunkedI(@NonNull String tag, @NonNull String msg) {
+        logChunked(Log.INFO, tag, msg);
+    }
+
+    public static void logChunkedE(@NonNull String tag, @NonNull String msg) {
+        logChunked(Log.ERROR, tag, msg);
+    }
+
+    public static void logChunkedW(@NonNull String tag, @NonNull String msg) {
+        logChunked(Log.WARN, tag, msg);
     }
 }

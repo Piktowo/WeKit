@@ -7,7 +7,6 @@ import androidx.core.net.toUri
 import com.afollestad.materialdialogs.MaterialDialog
 import de.robv.android.xposed.XposedHelpers
 import moe.ouom.wekit.config.WeConfig
-import moe.ouom.wekit.constants.Constants
 import moe.ouom.wekit.constants.Constants.Companion.TYPE_LUCKY_MONEY
 import moe.ouom.wekit.constants.Constants.Companion.TYPE_LUCKY_MONEY_EXCLUSIVE
 import moe.ouom.wekit.core.dsl.dexClass
@@ -59,13 +58,6 @@ class WeRedPacketAuto : BaseClickableFunctionHookItem(), WeDatabaseListener.Data
      * 接口实现：处理数据库插入事件
      */
     override fun onInsert(table: String, values: ContentValues) {
-        val config = WeConfig.getDefaultConfig()
-        val verboseLog = config.getBooleanOrFalse(Constants.PrekVerboseLog)
-
-        if (verboseLog) {
-            WeLogger.d("WeRedPacketAuto: onInsert 被调用 - table=$table")
-        }
-
         if (table != "message") return
 
         val type = values.getAsInteger("type") ?: 0

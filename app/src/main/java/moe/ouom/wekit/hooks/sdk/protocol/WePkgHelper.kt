@@ -390,6 +390,7 @@ class WePkgHelper : ApiHookItem(), IDexFind {
         }
         return false
     }
+
     fun sendCgi(uri: String, cgiId: Int, funcId: Int, routeId: Int, jsonPayload: String, dslBlock: WeReqDsl.() -> Unit) {
         val dsl = WeReqDsl().apply(dslBlock)
         sendCgi(uri, cgiId, funcId, routeId, jsonPayload, dsl as WeReqCallback)
