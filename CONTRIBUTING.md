@@ -2132,6 +2132,426 @@ accountConfig.edit()
     .apply()
 ```
 
+### 网络数据包拦截器 (IWePkgInterceptor)
+
+`IWePkgInterceptor` 是 WeKit 提供的网络数据包拦截器接口，允许开发者在微信网络请求/响应的传输过程中进行拦截和篡改。
+
+#### 接口定义
+
+```kotlin
+package moe.ouom.wekit.hooks.sdk.protocol.intf
+
+interface IWePkgInterceptor {
+    /**
+     * 拦截并篡改请求数据包
+     * @param uri 请求的 URI 地址
+     * @param cgiId CGI 命令 ID
+     * @param reqBytes 原始请求字节数组
+     * @return 修改后的字节数组，返回 null 表示不拦截
+     */
+    fun onRequest(uri: String, cgiId: Int, reqBytes: ByteArray): ByteArray? = null
+
+    /**
+     * 拦截并篡改响应数据包
+     * @param uri 请求的 URI 地址
+     * @param cgiId CGI 命令 ID
+     * @param respBytes 原始响应字节数组
+     * @return 修改后的字节数组，返回 null 表示不拦截
+     */
+    fun onResponse(uri: String, cgiId: Int, respBytes: ByteArray): ByteArray? = null
+}
+```
+
+#### 核心能力
+
+- ✅ **请求拦截**：在数据包发送前修改请求内容
+- ✅ **响应拦截**：在数据包返回后修改响应内容
+- ✅ **协议解析**：配合 `WeProtoData` 工具类解析和修改 Protobuf 数据
+- ✅ **链式处理**：支持多个拦截器按注册顺序依次处理
+
+#### 参数说明
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `uri` | String | 网络请求的 URI 地址，用于识别请求类型 |
+| `cgiId` | Int | CGI 命令 ID，微信内部的接口标识符 |
+| `reqBytes` / `respBytes` | ByteArray | Protobuf 编码的原始字节数据 |
+
+**返回值**：
+- **非 null**：使用返回的字节数组替换原始数据包
+- **null**：不进行拦截
+
+#### 快速开始
+
+**步骤 1: 创建拦截器类**
+
+```kotlin
+import moe.ouom.wekit.hooks.sdk.protocol.intf.IWePkgInterceptor
+
+class MyPacketInterceptor : IWePkgInterceptor {
+
+    override fun onRequest(uri: String, cgiId: Int, reqBytes: ByteArray): ByteArray? {
+        // 只拦截特定的 CGI ID
+        if (cgiId != 1234) return null
+
+        // 处理请求数据...
+        return modifiedBytes
+    }
+
+    override fun onResponse(uri: String, cgiId: Int, respBytes: ByteArray): ByteArray? {
+        // 只拦截特定的 CGI ID
+        if (cgiId != 5678) return null
+
+        // 处理响应数据...
+        return modifiedBytes
+    }
+}
+```
+
+**步骤 2: 注册拦截器**
+
+在 Hook 入口点（通常是 `entry()` 方法）中注册拦截器：
+
+```kotlin
+import moe.ouom.wekit.hooks.sdk.protocol.WePkgManager
+
+override fun entry(classLoader: ClassLoader) {
+    WePkgManager.addInterceptor(this)
+}
+```
+
+**步骤 3: 卸载拦截器**
+
+在 Hook 卸载时（`unload()` 方法）移除拦截器：
+
+```kotlin
+override fun unload(classLoader: ClassLoader) {
+    WePkgManager.removeInterceptor(this)
+}
+```
+
+#### 核心工具类：WeProtoData
+
+`WeProtoData` 是处理 Protobuf 数据的核心工具类，提供以下关键方法：
+
+**常用方法**：
+
+```kotlin
+val data = WeProtoData()
+
+// 1. 从字节数组解析
+data.fromBytes(byteArray)
+
+// 2. 转换为 JSON（便于查看和修改）
+val json: JSONObject = data.toJSON()
+
+// 3. 应用 JSON 修改
+data.applyViewJSON(json, deepCopy = true)
+
+// 4. 转回字节数组
+val modifiedBytes: ByteArray = data.toPacketBytes()
+```
+
+**处理流程**：
+
+```
+原始字节数组 → WeProtoData.fromBytes()
+     ↓
+  JSON 对象 ← WeProtoData.toJSON()
+     ↓
+  修改 JSON
+     ↓
+  应用修改 ← WeProtoData.applyViewJSON()
+     ↓
+修改后字节数组 ← WeProtoData.toPacketBytes()
+```
+
+#### 完整示例：修改转账余额显示
+
+以下是一个完整的实战示例，展示如何拦截收银台数据包并修改余额显示：
+
+```kotlin
+package moe.ouom.wekit.hooks.item.chat.risk
+
+import android.content.Context
+import android.text.InputType
+import moe.ouom.wekit.config.WeConfig
+import moe.ouom.wekit.core.model.BaseClickableFunctionHookItem
+import moe.ouom.wekit.hooks.core.annotation.HookItem
+import moe.ouom.wekit.hooks.sdk.protocol.WePkgManager
+import moe.ouom.wekit.hooks.sdk.protocol.intf.IWePkgInterceptor
+import moe.ouom.wekit.ui.creator.dialog.BaseRikkaDialog
+import moe.ouom.wekit.util.WeProtoData
+import moe.ouom.wekit.util.log.WeLogger
+import org.json.JSONArray
+import org.json.JSONObject
+
+@HookItem(path = "聊天与消息/修改转账时的余额", desc = "点击配置")
+class HookQueryCashierPkg : BaseClickableFunctionHookItem(), IWePkgInterceptor {
+
+    companion object {
+        private const val KEY_CFT_BALANCE = "cashier_cft_balance"
+        private const val KEY_LQT_BALANCE = "cashier_lqt_balance"
+        private const val DEFAULT_CFT = "¥999,999.00"
+        private const val DEFAULT_LQT = "¥8,888,888.88"
+    }
+
+    override fun entry(classLoader: ClassLoader) {
+        // 注册拦截器
+        WePkgManager.addInterceptor(this)
+    }
+
+    override fun onResponse(uri: String, cgiId: Int, respBytes: ByteArray): ByteArray? {
+        // 只拦截收银台查询接口（CGI ID: 2882）
+        if (cgiId != 2882) return null
+
+        WeLogger.i("HookQueryCashierPkg", "拦截到收银台数据包: $uri")
+
+        try {
+            // 1. 解析 Protobuf 数据
+            val data = WeProtoData()
+            data.fromBytes(respBytes)
+
+            // 2. 转换为 JSON 进行处理
+            val json = data.toJSON()
+            processJsonObject(json)
+
+            // 3. 应用修改并转回字节数组
+            data.applyViewJSON(json, true)
+
+            WeLogger.i("HookQueryCashierPkg", "篡改完成，返回新数据包")
+            return data.toPacketBytes()
+
+        } catch (e: Exception) {
+            WeLogger.e("HookQueryCashierPkg", e)
+        }
+
+        return null
+    }
+
+    private fun processJsonObject(obj: JSONObject) {
+        // 获取用户配置的余额
+        val config = WeConfig.getDefaultConfig()
+        val customCft = config.getStringPrek(KEY_CFT_BALANCE, DEFAULT_CFT) ?: DEFAULT_CFT
+        val customLqt = config.getStringPrek(KEY_LQT_BALANCE, DEFAULT_LQT) ?: DEFAULT_LQT
+
+        // 递归处理 JSON 对象
+        val keysList = mutableListOf<String>()
+        val keysIterator = obj.keys()
+        while (keysIterator.hasNext()) {
+            keysList.add(keysIterator.next())
+        }
+
+        for (key in keysList) {
+            val value = obj.opt(key) ?: continue
+
+            // 处理特定字段
+            if (key == "5" && value is String) {
+                when (value) {
+                    "CFT" -> updateBalanceText(obj, "零钱(剩余$customCft)")
+                    "LQT" -> updateBalanceText(obj, "零钱通(剩余$customLqt)")
+                }
+            }
+
+            // 递归处理嵌套结构
+            if (value is JSONObject) {
+                processJsonObject(value)
+            } else if (value is JSONArray) {
+                for (i in 0 until value.length()) {
+                    val item = value.optJSONObject(i)
+                    if (item != null) processJsonObject(item)
+                }
+            }
+        }
+    }
+
+    private fun updateBalanceText(item: JSONObject, newText: String) {
+        try {
+            val field2 = item.optJSONObject("2") ?: return
+            val subField1 = field2.optJSONObject("1") ?: return
+            subField1.put("3", newText)
+        } catch (e: Exception) {
+            WeLogger.e(e)
+        }
+    }
+
+    private inner class ConfigDialog(context: Context) : BaseRikkaDialog(context, "收银台余额配置") {
+        override fun initPreferences() {
+            addCategory("金额设置")
+
+            addEditTextPreference(
+                key = KEY_CFT_BALANCE,
+                title = "零钱余额",
+                summary = "设置支付时显示的零钱余额",
+                defaultValue = DEFAULT_CFT,
+                hint = "例如: ¥999,999.00",
+                inputType = InputType.TYPE_CLASS_TEXT,
+            )
+
+            addEditTextPreference(
+                key = KEY_LQT_BALANCE,
+                title = "零钱通余额",
+                summary = "设置支付时显示的零钱通余额",
+                defaultValue = DEFAULT_LQT,
+                hint = "例如: ¥8,888,888.88",
+                inputType = InputType.TYPE_CLASS_TEXT,
+            )
+        }
+    }
+
+    override fun unload(classLoader: ClassLoader) {
+        // 卸载时移除拦截器
+        WePkgManager.removeInterceptor(this)
+    }
+
+    override fun onClick(context: Context?) {
+        context?.let { ConfigDialog(it).show() }
+    }
+}
+```
+
+#### 最佳实践
+
+**1. 精确过滤 CGI ID**
+
+```kotlin
+override fun onResponse(uri: String, cgiId: Int, respBytes: ByteArray): ByteArray? {
+    // ✅ 推荐：只处理特定的 CGI ID
+    if (cgiId != 2882) return null
+
+    // ❌ 不推荐：处理所有数据包（性能问题）
+    // 进行处理...
+}
+```
+
+**2. 异常处理**
+
+```kotlin
+override fun onResponse(uri: String, cgiId: Int, respBytes: ByteArray): ByteArray? {
+    try {
+        // 数据处理逻辑
+        return modifiedBytes
+    } catch (e: Exception) {
+        // ✅ 记录异常日志
+        WeLogger.e("MyInterceptor", e)
+        // ✅ 返回 null 避免影响正常流程
+        return null
+    }
+}
+```
+
+**3. 日志记录**
+
+```kotlin
+// ✅ 使用 WeLogger 记录关键信息
+WeLogger.i("MyInterceptor", "拦截到数据包: uri=$uri, cgiId=$cgiId")
+
+// ✅ 记录处理结果
+WeLogger.i("MyInterceptor", "篡改完成，返回新数据包")
+```
+
+**4. 资源清理**
+
+```kotlin
+class MyHook : BaseHookItem(), IWePkgInterceptor {
+    override fun entry(classLoader: ClassLoader) {
+        WePkgManager.addInterceptor(this)
+    }
+
+    override fun unload(classLoader: ClassLoader) {
+        // ✅ 必须在卸载时移除拦截器
+        WePkgManager.removeInterceptor(this)
+    }
+}
+```
+
+#### 调试技巧
+
+**1. 启用详细日志**
+
+在 WeKit 设置中启用"详细日志"选项，可以查看所有数据包的详细信息：
+
+```kotlin
+// WePkgManager 会自动记录所有数据包
+if (WeConfig.dGetBoolean(Constants.PrekVerboseLog)) {
+    WeLogger.logChunkedI("WePkgInterceptor-Response",
+        "Received: $uri, CGI=$cgiId, LEN=${respBytes.size}, Data=${data.toJSON()}"
+    )
+}
+```
+
+**2. 查看 JSON 结构**
+
+```kotlin
+val data = WeProtoData()
+data.fromBytes(respBytes)
+val json = data.toJSON()
+
+// 打印完整 JSON 结构
+WeLogger.i("MyInterceptor", "JSON: ${json.toString(2)}")
+```
+
+**3. 对比修改前后**
+
+```kotlin
+val originalJson = data.toJSON().toString()
+processJsonObject(json)
+val modifiedJson = json.toString()
+
+WeLogger.i("MyInterceptor", "修改前: $originalJson")
+WeLogger.i("MyInterceptor", "修改后: $modifiedJson")
+```
+
+#### 常见问题
+
+**Q1: 如何找到目标接口的 CGI ID？**
+
+**A:** 启用"详细日志"后，在 Logcat 中搜索 `WePkgInterceptor`，查看所有数据包的 CGI ID 和内容。
+
+**Q2: 修改后的数据包不生效？**
+
+**A:** 检查以下几点：
+1. 确认 `onRequest/onResponse` 返回了非 null 值
+2. 确认 `applyViewJSON()` 的第二个参数为 `true`
+3. 确认使用 `toPacketBytes()` 而不是 `toBytes()`
+
+**Q3: 多个拦截器的执行顺序？**
+
+**A:** 拦截器按注册顺序依次执行，第一个返回非 null 的拦截器会终止后续处理。
+
+**Q4: 如何处理嵌套的 Protobuf 结构？**
+
+**A:** 使用递归方法处理 JSON 对象和数组：
+
+```kotlin
+private fun processJsonObject(obj: JSONObject) {
+    for (key in obj.keys()) {
+        when (val value = obj.opt(key)) {
+            is JSONObject -> processJsonObject(value)  // 递归处理对象
+            is JSONArray -> {
+                for (i in 0 until value.length()) {
+                    value.optJSONObject(i)?.let { processJsonObject(it) }
+                }
+            }
+        }
+    }
+}
+```
+
+#### 注意事项
+
+> [!WARNING]
+> - 数据包篡改可能导致账号异常，请谨慎使用
+> - 不要在生产环境或主账号上测试未验证的拦截器
+> - 确保在 `unload()` 中正确移除拦截器，避免内存泄漏
+
+> [!TIP]
+> - 优先使用 CGI ID 过滤，避免不必要的数据处理
+> - 使用 try-catch 包裹所有处理逻辑，确保异常不会影响正常流程
+> - 善用日志工具进行调试和问题排查
+
+---
+
 ---
 
 ## 代码规范
