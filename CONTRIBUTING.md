@@ -352,7 +352,7 @@ moe.ouom.wekit/
    ├─ 实现 DEX 查找逻辑
    ├─ 实现 Hook 逻辑
    ├─ 添加配置和 UI
-   └─ ⚠️ 实现版本兼容性逻辑（使用 MMVersion 和 requireMinWeChatVersion）
+   └─ ⚠️ 实现版本兼容性逻辑（使用 MMVersion）
 
 4. 测试验证
    ├─ 本地测试
@@ -440,26 +440,7 @@ override fun entry(classLoader: ClassLoader) {
 }
 ```
 
-#### 示例 2: 使用 requireMinWeChatVersion 注解
-
-```kotlin
-import moe.ouom.wekit.hooks.core.annotation.HookItem
-import moe.ouom.wekit.constants.MMVersion
-
-/**
- * 此功能仅支持微信 8.0.80 及以上版本
- */
-@HookItem(
-    path = "聊天与消息/新功能",
-    desc = "需要微信 8.0.80+",
-    requireMinWeChatVersion = MMVersion.MM_8_0_80  // 最低版本要求
-)
-class NewFeature : BaseSwitchFunctionHookItem() {
-    // 实现代码...
-}
-```
-
-#### 示例 3: DEX 查找的版本适配
+#### 示例 2: DEX 查找的版本适配
 
 ```kotlin
 override fun dexFind(dexKit: DexKitBridge): Map<String, String> {
@@ -486,7 +467,7 @@ override fun dexFind(dexKit: DexKitBridge): Map<String, String> {
 }
 ```
 
-#### 示例 4: Hook 逻辑的版本适配
+#### 示例 3: Hook 逻辑的版本适配
 
 ```kotlin
 override fun entry(classLoader: ClassLoader) {
@@ -512,7 +493,7 @@ override fun entry(classLoader: ClassLoader) {
 }
 ```
 
-#### 示例 5: 完整的版本兼容实现
+#### 示例 4: 完整的版本兼容实现
 
 ```kotlin
 package moe.ouom.wekit.hooks.item.chat.msg
@@ -728,21 +709,6 @@ override fun entry(classLoader: ClassLoader) {
         "methodName",
         // ...
     )
-}
-```
-
-#### 问题 3: 功能完全不存在于旧版本
-
-**解决方案**: 使用 `requireMinWeChatVersion` 限制最低版本
-
-```kotlin
-@HookItem(
-    path = "新功能/仅新版本支持",
-    desc = "此功能仅在 8.0.90+ 可用",
-    requireMinWeChatVersion = MMVersion.MM_8_0_90
-)
-class NewVersionOnlyFeature : BaseSwitchFunctionHookItem() {
-    // 此功能在旧版本上不会显示
 }
 ```
 
@@ -2570,7 +2536,7 @@ close #1
 - [ ] 我已在本地测试这些更改 / I have tested these changes locally
 - [ ] 我已更新相关文档或注释（如适用） / I have updated relevant documentation or comments (if applicable)
 - [ ] **我确认此更改不会破坏任何原有功能** / I confirm this change does not break any existing features
-- [ ] **我已使用 MMVersion 和 requireMinWeChatVersion 进行版本适配（如适用）** / I have used MMVersion and requireMinWeChatVersion for version compatibility (if applicable)
+- [ ] **我已使用进行版本适配（如适用）** / I have used MMVersion for version compatibility (if applicable)
 - [ ] **我已在多个微信版本上测试此更改（如适用）** / I have tested this change on multiple WeChat versions (if applicable)  
 
 ##### 其他信息 / Additional Information
